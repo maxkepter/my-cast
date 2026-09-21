@@ -19,6 +19,9 @@ defaults:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -33,8 +36,13 @@ jobs:
       - run: npm test
       - run: npm run build
 
-      - name: Build Docker image
-        run: docker build -t my-cast-backend:latest .
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/maxkepter/my-cast-backend:latest .
+          if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "${{ github.event_name }}" = "push" ]; then
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker push ghcr.io/maxkepter/my-cast-backend:latest
+          fi
 
       - name: Deploy to VPS
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -46,5 +54,7 @@ jobs:
           script: |
             cd ~/my-cast || cd /root/my-cast
             git pull origin main
-            docker compose up -d --build backend
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker compose pull backend
+            docker compose up -d backend
       # ponytail: Zero-downtime rolling update skipped. Add blue-green/reverse-proxy healthcheck when high traffic.
