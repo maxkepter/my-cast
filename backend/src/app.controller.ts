@@ -12,6 +12,6 @@ export class AppController {
 
   @Get('/test')
   test(): string {
-    return 'test';
+    return 'test--';
   }
 }
