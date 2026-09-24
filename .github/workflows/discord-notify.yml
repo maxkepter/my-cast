@@ -18,7 +18,7 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
-          args: "🚀 **Pull Request mới:** ${{ github.event.pull_request.title }} (${{ github.event.pull_request.html_url }}) được tạo bởi **${{ github.actor }}**"
+          args: "🚀 **Pull Request mới:** ${{ github.event.pull_request.title }} (${{ github.event.pull_request.html_url }}) được tạo bởi **${{ github.actor }}** | **Yêu cầu: ${{ secrets.DISCORD_REVIEWERS }} vào review.**"
 
       - name: Send PR Merged Notification
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
