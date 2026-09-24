@@ -12,7 +12,7 @@ jobs:
   notify-discord:
     runs-on: ubuntu-latest
     steps:
-      - name: Send PR Notification
+      - name: Send PR Opened Notification
         if: github.event_name == 'pull_request' && github.event.action == 'opened'
         uses: Ilshidur/action-discord@master
         env:
@@ -20,18 +20,18 @@ jobs:
         with:
           args: "🚀 **Pull Request mới:** ${{ github.event.pull_request.title }} (${{ github.event.pull_request.html_url }}) được tạo bởi **${{ github.actor }}** | **Yêu cầu: ${{ secrets.DISCORD_REVIEWERS }} vào review.**"
 
+      - name: Send CI/CD Success Notification
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          args: "🟢 **CI/CD [${{ github.event.workflow_run.name }}] Thành Công!** Commit `${{ github.event.workflow_run.head_commit.message }}` bởi **${{ github.event.workflow_run.actor.login }}**"
+
       - name: Send PR Merged Notification
         if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
         uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
-          args: "✅ **Merge Request thành công:** PR #${{ github.event.pull_request.number }} đã được merge vào nhánh `${{ github.event.pull_request.base.ref }}`!"
-
-      - name: Send CI/CD Status Notification
-        if: github.event_name == 'workflow_run'
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        with:
-          args: "${{ github.event.workflow_run.conclusion == 'success' && '🟢 **CI/CD Build Thành Công!**' || '🔴 **CI/CD Build Thất Bại!**' }} [${{ github.event.workflow_run.name }}] cho commit `${{ github.event.workflow_run.head_commit.message }}` bởi ${{ github.event.workflow_run.actor.login }}"
+          args: "✅ **Merge Request thành công:** PR #${{ github.event.pull_request.number }} đã được merge vào nhánh `${{ github.event.pull_request.base.ref }}` bởi **${{ github.actor }}**!"
