@@ -55,4 +55,5 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             docker compose pull backend
             docker compose up -d backend
+            docker image prune -f
       # ponytail: Zero-downtime rolling update skipped. Add blue-green/reverse-proxy healthcheck when high traffic.
