@@ -15,7 +15,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         password: config.get<string>('DB_PASSWORD', 'postgres'),
         database: config.get<string>('DB_DATABASE', 'my_cast'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        synchronize:
+          config.get<string>('DB_SYNCHRONIZE') !== undefined
+            ? config.get<string>('DB_SYNCHRONIZE') === 'true'
+            : config.get<string>('NODE_ENV') !== 'production',
         logging: config.get<string>('DB_LOGGING') === 'true',
       }),
     }),

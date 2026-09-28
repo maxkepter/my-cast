@@ -3,7 +3,7 @@ https://docs.nestjs.com/modules
 */
 
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { CACHE_SERVICE } from '../application/interface/cache-service.interface';
 import { Redis } from 'ioredis';
 import { RedisService } from './redis.service';
@@ -14,7 +14,7 @@ import { RedisService } from './redis.service';
     RedisService,
     {
       provide: CACHE_SERVICE,
-      inject: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (config: ConfigService): Redis =>
         new Redis({
           host: config.get<string>('REDIS_HOST', 'localhost'),
