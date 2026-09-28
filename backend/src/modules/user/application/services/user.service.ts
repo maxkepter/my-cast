@@ -51,14 +51,14 @@ export class UserService
       });
 
       const saved = await repo.save(user);
-      return this.toRes(saved);
+      return UserRes.of(saved);
     });
   }
 
   async getUserById(userId: string): Promise<UserRes> {
     const user = await this.userRepo.findOne({ where: { userId } });
     if (!user) throw new NotFoundException('User not found');
-    return this.toRes(user);
+    return UserRes.of(user);
   }
 
   async getUser(req: UserFilterReq): Promise<Page<UserRes>> {
@@ -81,7 +81,11 @@ export class UserService
     qb.skip((page - 1) * size).take(size);
 
     const [data, total] = await qb.getManyAndCount();
-    return Page.of(data.map((u) => this.toRes(u)), total, { page, size });
+    return Page.of(
+      data.map((u) => UserRes.of(u)),
+      total,
+      { page, size },
+    );
   }
 
   async updateUser(userId: string, req: UserUpdateReq): Promise<UserRes> {
@@ -106,7 +110,7 @@ export class UserService
       }
 
       const saved = await repo.save(user);
-      return this.toRes(saved);
+      return UserRes.of(saved);
     });
   }
 
@@ -118,7 +122,7 @@ export class UserService
 
       user.updateRole(newRole);
       const saved = await repo.save(user);
-      return this.toRes(saved);
+      return UserRes.of(saved);
     });
   }
 
@@ -130,22 +134,7 @@ export class UserService
 
       user.deactivate();
       const saved = await repo.save(user);
-      return this.toRes(saved);
+      return UserRes.of(saved);
     });
   }
-
-  // ponytail: mapping truc tiep sang UserRes, nang cap thanh mapper rieng neu them domain logic
-  private toRes(user: User): UserRes {
-    return {
-      userId: user.userId,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      profile: {
-        displayName: user.profile?.displayName,
-        avatar: user.profile?.avatar,
-      },
-    };
-  }
 }
-
