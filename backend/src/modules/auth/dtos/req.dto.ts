@@ -1,6 +1,11 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserCreateReq } from '../../user/dtos/req.dto';
 
 export class VerifyEmailReq {
   @ApiProperty({ example: 'user@example.com' })
@@ -26,11 +31,26 @@ export class LoginReq {
   password: string;
 }
 
-export class RegisterReq extends UserCreateReq {
+export class RegisterReq {
+  @ApiProperty({ example: 'johndoe' })
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
   @ApiProperty({ example: 'password123', minLength: 6 })
   @IsString()
   @MinLength(6)
   password: string;
+
+  @ApiProperty({ example: 'John Doe', required: false })
+  @IsString()
+  @IsOptional()
+  displayName?: string;
 }
 
 export class ForgotPasswordReq {

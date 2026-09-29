@@ -34,4 +34,21 @@ export class User extends ActiveableEntity {
   updateEmail(newEmail: string): void {
     this.email = newEmail;
   }
+
+  static create(
+    username: string,
+    email: string,
+    password: string,
+    role: Role = Role.USER,
+    profile: UserProfile,
+  ): User {
+    const user = new User();
+    user.username = username;
+    user.email = email;
+    user.password = password;
+    user.role = role;
+    user.profile = profile;
+    user.isActive = true;
+    return user;
+  }
 }

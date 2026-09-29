@@ -163,6 +163,24 @@ describe('AuthService', () => {
       );
     });
 
+    it('should fallback displayName to username when not provided', async () => {
+      userRepo.findOne.mockResolvedValue(null);
+
+      await authService.register({
+        username: 'nodisplay',
+        email: 'nodisplay@example.com',
+        password: 'password123',
+      });
+
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'auth:verify:nodisplay@example.com',
+        expect.objectContaining({
+          displayName: 'nodisplay',
+        }),
+        900,
+      );
+    });
+
     it('should throw ConflictException if username or email already exists', async () => {
       userRepo.findOne.mockResolvedValue({ userId: 'u-exists' });
 
@@ -209,6 +227,30 @@ describe('AuthService', () => {
           email: 'test@example.com',
           displayName: 'Test User',
           userName: 'testuser',
+        }),
+      );
+    });
+
+    it('should fallback displayName to username if cached displayName is missing', async () => {
+      cacheService.get.mockResolvedValue({
+        email: 'test@example.com',
+        username: 'testuser',
+        password: 'hashedpassword',
+        code: '123456',
+      });
+      userRepo.findOne.mockResolvedValue(null);
+
+      const result = await authService.verifyEmail({
+        email: 'test@example.com',
+        code: '123456',
+      });
+
+      expect(result.userId).toBe('u-1');
+      expect(userRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          profile: expect.objectContaining({
+            displayName: 'testuser',
+          }),
         }),
       );
     });

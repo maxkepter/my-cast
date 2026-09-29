@@ -133,15 +133,29 @@ export class AuthService
     const existing = await this.userRepo.findOne({
       where: [{ username: req.username }, { email: req.email }],
     });
+
     if (existing) {
       throw new ConflictException('Username or email already exists');
     }
 
+    const existingPending = await this.cacheService.get(
+      `auth:verify:${req.email}`,
+    );
+    if (existingPending) {
+      throw new ConflictException(
+        'A verification code has already been sent to this email. Please check your email or wait for the code to expire.',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(req.password, 10);
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+
     const ttl = Number(
       this.configService.get<number>('EMAIL_VERIFICATION_TTL', 900),
     );
+
+    const displayName = req.displayName?.trim() || req.username;
 
     const cacheKey = `auth:verify:${req.email}`;
     await this.cacheService.set(
@@ -150,14 +164,14 @@ export class AuthService
         email: req.email,
         username: req.username,
         password: hashedPassword,
-        displayName: req.displayName,
+        displayName,
         code,
       },
       ttl,
     );
 
     await this.internalEventBus.publish(
-      new UserRegisteredEvent(req.email, req.displayName, code, ttl),
+      new UserRegisteredEvent(req.email, displayName, code, ttl),
     );
 
     return {
@@ -194,17 +208,19 @@ export class AuthService
       throw new ConflictException('Username or email already exists');
     }
 
-    const profile = new UserProfile();
-    profile.displayName = cachedData.displayName;
+    const profile = UserProfile.create(
+      cachedData.displayName?.trim() || cachedData.username,
+    );
 
-    const user = this.userRepo.create({
-      username: cachedData.username,
-      email: cachedData.email,
-      password: cachedData.password,
+    let user = User.create(
+      cachedData.username,
+      cachedData.email,
+      cachedData.password,
+      Role.USER,
       profile,
-      role: Role.USER,
-      isActive: true,
-    });
+    );
+
+    user = this.userRepo.create(user);
     const savedUser = await this.userRepo.save(user);
 
     await this.cacheService.del(cacheKey);

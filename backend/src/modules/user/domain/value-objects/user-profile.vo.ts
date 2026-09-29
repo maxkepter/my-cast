@@ -14,4 +14,11 @@ export class UserProfile {
   updateAvatar(newAvatar: string): void {
     this.avatar = newAvatar;
   }
+
+  static create(displayName: string, avatar?: string): UserProfile {
+    const profile = new UserProfile();
+    profile.displayName = displayName;
+    profile.avatar = avatar;
+    return profile;
+  }
 }

@@ -1,3 +1,4 @@
+import { VideoModule } from './modules/video/video.module';
 import { InfrastructureModule } from './modules/infra/infrastructure.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -8,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
+    VideoModule,
     InfrastructureModule,
     ConfigModule.forRoot({ isGlobal: true }),
     UserModule,
