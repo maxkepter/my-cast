@@ -10,7 +10,11 @@ export class StorageListener {
   constructor(private readonly deleteStorageHandler: DeleteStorageHandler) {}
 
   @OnEvent(DeleteStorageEvent.EVENT_NAME, { async: true })
-  async handleDeleteStorage(event: DeleteStorageEvent): Promise<void> {
-    return this.deleteStorageHandler.handle(event);
+  async handleDeleteStorage(event: DeleteStorageEvent | string): Promise<void> {
+    const payload =
+      typeof event === 'string'
+        ? DeleteStorageEvent.deserialize(event)
+        : event;
+    return this.deleteStorageHandler.handle(payload);
   }
 }

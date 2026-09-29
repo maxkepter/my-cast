@@ -32,6 +32,15 @@ export class RefreshToken {
   @CreateDateColumn()
   createdAt: Date;
 
+  static create(userId: string, expiresAt: Date, token?: string): RefreshToken {
+    const rt = new RefreshToken();
+    rt.token = token || (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Math.random().toString(36).substring(2));
+    rt.userId = userId;
+    rt.expiresAt = expiresAt;
+    rt.isRevoked = false;
+    return rt;
+  }
+
   revoke(): void {
     this.isRevoked = true;
     this.revokedAt = new Date();

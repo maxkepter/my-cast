@@ -3,17 +3,17 @@ https://docs.nestjs.com/modules
 */
 
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CACHE_SERVICE } from '../application/interface/cache-service.interface';
-import { Redis } from 'ioredis';
+import Redis from 'ioredis';
 import { RedisService } from './redis.service';
 
 @Module({
+  imports: [ConfigModule],
   controllers: [],
   providers: [
-    RedisService,
     {
-      provide: CACHE_SERVICE,
+      provide: Redis,
       inject: [ConfigService],
       useFactory: (config: ConfigService): Redis =>
         new Redis({
@@ -23,7 +23,12 @@ import { RedisService } from './redis.service';
           lazyConnect: true,
         }),
     },
+    RedisService,
+    {
+      provide: CACHE_SERVICE,
+      useExisting: RedisService,
+    },
   ],
-  exports: [CACHE_SERVICE],
+  exports: [CACHE_SERVICE, RedisService, Redis],
 })
 export class RedisModule {}

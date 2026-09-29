@@ -4,6 +4,9 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { join } from 'path';
 import { MAIL_SERVICE } from './application/interface/mail-service.interface';
+import { SendVerificationEmailHandler } from './application/handlers/send-verification-email.handler';
+import { SendWelcomeEmailHandler } from './application/handlers/send-welcome-email.handler';
+import { MailListener } from './infrastructure/listeners/mail.listener';
 import { NestMailerService } from './infrastructure/adapters/nest-mailer.service';
 
 @Module({
@@ -41,6 +44,9 @@ import { NestMailerService } from './infrastructure/adapters/nest-mailer.service
   ],
   providers: [
     NestMailerService,
+    SendVerificationEmailHandler,
+    SendWelcomeEmailHandler,
+    MailListener,
     {
       provide: MAIL_SERVICE,
       useExisting: NestMailerService,

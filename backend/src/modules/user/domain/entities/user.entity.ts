@@ -20,6 +20,13 @@ export class User extends ActiveableEntity {
   @Column({ unique: true })
   email: string;
 
+  @Column({ nullable: true })
+  password?: string;
+
+  updatePassword(newPassword: string): void {
+    this.password = newPassword;
+  }
+
   updateRole(newRole: Role): void {
     this.role = newRole;
   }
