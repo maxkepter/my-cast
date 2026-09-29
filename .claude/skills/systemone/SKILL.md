@@ -1,108 +1,91 @@
 ---
 name: systemone
-description: Tự động sinh payload JSON chuẩn xác cho SystemOne Engine (noul, noun, string, number, list), gọi script gateway Node.js và tích hợp luồng phán đoán/router.
+description: Đánh giá có định kiểu và phân loại ngữ nghĩa qua SystemOne Engine (noul, noun, string, number/score, list) trực tiếp bằng CLI flags hoặc Node.js module mà không cần tạo file JSON.
 ---
 
 # SystemOne Evaluation Skill
 
-Skill hỗ trợ sinh schema câu hỏi, đóng gói payload JSON chuẩn cho SystemOne Engine và thực thi qua CLI script gateway.
+Skill hỗ trợ đánh giá trực tiếp qua CLI flags, JavaScript API hoặc JSON input, tự động load file `.env` và hỗ trợ đầy đủ 5 kiểu dữ liệu nguyên tử.
 
-## 1. Schema Payload SystemOne
+## 1. 5 Primitives Hỗ Trợ Đầy Đủ
 
-Endpoint nhận payload JSON có cấu trúc:
-```json
-{
-  "model": "oc/jev-1.13-free",
-  "state": { ... },
-  "questions": [ ... ]
-}
-```
-
-### Các kiểu dữ liệu Question (`type`):
-
-1. **`noul`** (Boolean / Điều kiện xác suất):
-   - Đánh giá tính đúng/sai hoặc xác suất của điều kiện.
-   - Trả về xác suất `yes` [0..1].
-   ```json
-   {
-     "id": "is_urgent",
-     "type": "noul",
-     "instructions": "Yêu cầu có mang tính khẩn cấp cần xử lý ngay lập tức không?"
-   }
-   ```
-
-2. **`noun`** (Choice / Phân loại danh mục):
-   - Chọn đúng một phương án trong danh sách `options`.
-   ```json
-   {
-     "id": "category",
-     "type": "noun",
-     "instructions": "Xác định danh mục chính của yêu cầu",
-     "options": ["bug_report", "feature_request", "support", "billing"]
-   }
-   ```
-
+1. **`noul`** (Boolean / Xác suất):
+   - Đánh giá xác suất đúng/sai [0..1].
+2. **`noun` / `choice`** (Phân loại danh mục):
+   - Chọn đúng 1 phương án trong danh sách `options` kèm phân phối xác suất.
 3. **`string`** (Trích xuất chuỗi):
-   - Trích xuất thông tin cụ thể từ state.
-   ```json
-   {
-     "id": "target_component",
-     "type": "string",
-     "instructions": "Tên component hoặc module được nhắc đến"
-   }
-   ```
-
-4. **`number`** (Đo lường / Thang điểm):
-   - Điểm số hoặc ước lượng số lượng/mức độ.
-   ```json
-   {
-     "id": "priority_score",
-     "type": "number",
-     "instructions": "Đánh giá mức độ ưu tiên trên thang từ 1 đến 5",
-     "min": 1,
-     "max": 5
-   }
-   ```
-
-5. **`list`** (Danh sách nhãn / Multi-label):
-   - Chọn nhiều nhãn áp dụng từ `options`.
-   ```json
-   {
-     "id": "tags",
-     "type": "list",
-     "instructions": "Các chủ đề kỹ thuật liên quan",
-     "options": ["backend", "frontend", "database", "devops", "security"]
-   }
-   ```
+   - Trích xuất nhãn/chuỗi cụ thể từ danh sách options hoặc state.
+4. **`number` / `score`** (Thang điểm đo lường):
+   - `number`: Đo lường trên thang số (`min, max`).
+   - `score`: Thang điểm dựa trên các level mô tả có thứ tự.
+5. **`list`** (Multi-label):
+   - Chọn nhiều nhãn phù hợp từ danh sách `options` (tự động phân tích đa chiều).
 
 ---
 
-## 2. Thực thi qua Gateway Script
+## 2. Cách Dùng Trực Tiếp (Không Cần File JSON)
 
-Script thực thi tại: `.claude/skills/systemone/script/systemone-eval.js`
+Script tại: `.claude/skills/systemone/script/systemone-eval.js` (tự động load `.env`).
 
-### Yêu cầu môi trường:
-- `JEV_API_KEY`: API key xác thực.
-- `JEV_ENDPOINT_URL`: (Tùy chọn) Mặc định `https://router.kepter.id.vn/v1/systemone`.
-- `JEV_MODEL`: (Tùy chọn) Mặc định `oc/jev-1.13-free`.
+### Cú pháp CLI Flags Đầy Đủ 5 Types:
 
-### Lệnh chạy:
-
-**Cách 1: Truyền JSON trực tiếp qua tham số**
 ```bash
-node .claude/skills/systemone/script/systemone-eval.js '{"state":{"text":"Lỗi 500 khi checkout"},"questions":[{"id":"is_urgent","type":"noul","instructions":"Có khẩn cấp không?"}]}'
+node .claude/skills/systemone/script/systemone-eval.js \
+  -s "Nội dung / Context cần đánh giá" \
+  --noul <id> "<câu hỏi>" \
+  --noun <id> "<câu hỏi>" "<opt1,opt2,opt3>" \
+  --string <id> "<câu hỏi>" "<opt1,opt2,opt3>" \
+  --number <id> "<câu hỏi>" "<min,max>" \
+  --score <id> "<câu hỏi>" "<Level 0,Level 1,Level 2>" \
+  --list <id> "<câu hỏi>" "<tag1,tag2,tag3>"
 ```
 
-**Cách 2: Pipe qua stdin**
+### Ví dụ Thực Tế:
+
 ```bash
-echo '{"state":{"ticket":"Không thể kết nối DB"},"questions":[{"id":"topic","type":"noun","options":["db","ui","auth"]}]}' | node .claude/skills/systemone/script/systemone-eval.js
+node .claude/skills/systemone/script/systemone-eval.js \
+  -s "Video streaming API gặp lỗi timeout khi upload video 2GB" \
+  --noul is_urgent "Có khẩn cấp không?" \
+  --noun category "Phân loại lỗi" "bug,performance,billing" \
+  --number priority "Mức độ ưu tiên" "1,5" \
+  --list tags "Các bộ phận liên quan" "backend,frontend,storage,devops" \
+  --string target "Module bị ảnh hưởng" "video_upload,user_profile,auth"
+```
+
+### Cú pháp Rút Gọn `-q`:
+
+```bash
+node .claude/skills/systemone/script/systemone-eval.js \
+  -s "User report video spam" \
+  -q "is_valid:noul:Report có hợp lệ không?" \
+  -q "action:noun:Hành động:ban=Khóa tài khoản,warn=Cảnh cáo,dismiss=Bỏ qua" \
+  -q "severity:number:Mức độ nghiêm trọng:1,5" \
+  -q "tags:list:Loại vi phạm:spam,harassment,hate_speech"
 ```
 
 ---
 
-## 3. Quy trình áp dụng
+## 3. Cách Dùng Dạng Module Node.js
 
-1. **State**: Gom dữ liệu ngữ cảnh vào `state`.
-2. **Questions**: Tạo câu hỏi nguyên tử với kiểu dữ liệu (`noul`, `noun`, `string`, `number`, `list`).
-3. **Execute**: Chạy script gateway nhận kết quả định kiểu.
-4. **Route**: Rẽ nhánh luồng dựa trên kết quả.
+```javascript
+const { evaluate } = require('./.claude/skills/systemone/script/systemone-eval');
+
+const res = await evaluate({
+  state: { text: "Video streaming API" },
+  questions: {
+    is_core: { type: "noul", instructions: "Có phải core domain?" },
+    category: { type: "noun", instructions: "Danh mục", options: ["video", "social", "auth"] },
+    priority: { type: "number", instructions: "Độ ưu tiên", min: 1, max: 5 },
+    tags: { type: "list", instructions: "Tags liên quan", options: ["be", "fe", "storage"] }
+  }
+});
+```
+
+---
+
+## 4. Truyền File hoặc Pipe (Tùy chọn)
+
+Vẫn hỗ trợ đọc file JSON hoặc pipe qua stdin nếu có sẵn:
+```bash
+node .claude/skills/systemone/script/systemone-eval.js payload.json
+```
