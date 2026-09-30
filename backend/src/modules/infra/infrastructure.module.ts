@@ -10,6 +10,7 @@ import { QueueModule } from './queue/queue.module';
 import { MailModule } from './mail/mail.module';
 import { StorageModule } from './storage/storage.module';
 import { EventModule } from './event/event.module';
+import { FfmpegModule } from './ffmpeg/ffmpeg.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EventModule } from './event/event.module';
     MailModule,
     StorageModule,
     EventModule,
+    FfmpegModule,
   ],
   controllers: [],
   providers: [],
@@ -31,6 +33,7 @@ import { EventModule } from './event/event.module';
     MailModule,
     StorageModule,
     EventModule,
+    FfmpegModule,
   ],
 })
 export class InfrastructureModule {}
