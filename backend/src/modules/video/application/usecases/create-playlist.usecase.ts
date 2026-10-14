@@ -23,5 +23,3 @@ export interface CreatePlaylistUseCase {
     req: CreatePlaylistReq,
   ): Promise<PlaylistRes> | PlaylistRes;
 }
-
-export type CreatePLaylistUsecase = CreatePlaylistUseCase;

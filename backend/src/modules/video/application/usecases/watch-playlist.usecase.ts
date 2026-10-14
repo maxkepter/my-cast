@@ -48,5 +48,3 @@ export interface WatchPlaylistUseCase {
     pageReq: PageReq,
   ): Promise<Page<PlaylistRes>> | Page<PlaylistRes>;
 }
-
-export type WatchPlayListUsecase = WatchPlaylistUseCase;
