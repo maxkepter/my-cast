@@ -24,6 +24,12 @@ export interface WatchPlaylistUseCase {
     userId?: string | null,
   ): Promise<PlaylistRes> | PlaylistRes;
 
+  execute(
+    playlistId: string,
+    userId: string | null | undefined,
+    pageReq: PageReq,
+  ): Promise<Page<PlaylistRes>> | Page<PlaylistRes>;
+
   /**
    * Lấy danh sách phát theo kênh/tác giả (tương tự tab Playlist trên kênh YouTube).
    *
