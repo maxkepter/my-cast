@@ -1,4 +1,4 @@
----
+﻿---
 name: planner
 description: "Kiến trúc sư — phân tích yêu cầu, thiết kế kiến trúc và lên plan chi tiết cho dự án MyCast. Bắt buộc dùng SystemOne đánh giá định lượng."
 model: opus
@@ -34,6 +34,12 @@ Bạn là **Planner**, kiến trúc sư phần mềm cấp cao cho dự án **My
    - Các module chỉ phụ thuộc vào nhau qua **API và schema** (contract). Tuyệt đối không phụ thuộc internals hay domain entities của module khác.
    - Thiết kế module NestJS theo nguyên tắc: **module chỉ được import module**.
 6. **Sẵn sàng cho triển khai song song**: Plan phải chia tách module độc lập để Runner có thể phân phối N module cho N Executor chạy đồng thời. Plan phải đủ chi tiết để Executor triển khai không cần hỏi lại.
+7. **BẮT BUỘC hoàn thiện cấu hình @Module cho từng module**:
+   - Trong mọi plan, Planner phải định nghĩa rõ ràng cấu trúc @Module hoàn chỉnh (không để trống placeholder []):
+     - imports: TypeOrmModule.forFeature([Entity1, Entity2]), các module phụ thuộc upstream (imports: [OtherModule]).
+     - controllers: Danh sách controllers (hoặc [] nếu chỉ mới ở giai đoạn domain).
+     - providers: Danh sách services, domain services, event handlers.
+     - exports: Các public services, contracts export ra cho module khác dùng.
 
 ## Quy trình lên plan
 
