@@ -1,6 +1,7 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { PlaylistVisibility } from '../domain/enums/playlist-visibility.enum';
 import { VideoVisibility } from '../domain/enums/video-visibility.enum';
+import { SharePlatform } from '../domain/enums/share-platform.enum';
 import { AtLeastNonEmpty } from '../../../common/validators/at-least-non-empty.validator';
 
 export class CreatePlaylistReq {
@@ -68,4 +69,22 @@ export class UploadVideoReq {
   videoFile: string;
 
   videoConfig: VideoConfigReq;
+}
+
+export class ShareVideoReqDto {
+  @IsNotEmpty({ message: 'Video ID is required' })
+  @IsUUID('4', { message: 'Video ID must be a valid UUID' })
+  videoId!: string;
+
+  @IsOptional()
+  @IsEnum(SharePlatform, {
+    message: 'Platform must be one of DIRECT_LINK, FACEBOOK, TWITTER, EMBED',
+  })
+  platform?: SharePlatform = SharePlatform.DIRECT_LINK;
+}
+
+export class ToggleVideoLikeReqDto {
+  @IsNotEmpty({ message: 'Video ID is required' })
+  @IsUUID('4', { message: 'Video ID must be a valid UUID' })
+  videoId!: string;
 }

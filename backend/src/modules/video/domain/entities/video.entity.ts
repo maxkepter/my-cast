@@ -30,6 +30,12 @@ export class Video {
   @Column({ type: 'int', default: 0 })
   views!: number;
 
+  @Column({ type: 'int', default: 0 })
+  likesCount!: number;
+
+  @Column({ type: 'int', default: 0 })
+  sharesCount!: number;
+
   @Column(() => VideoConfig, { prefix: false })
   config!: VideoConfig;
 
@@ -43,6 +49,18 @@ export class Video {
     this.views = (this.views || 0) + 1;
   }
 
+  incrementLikes(): void {
+    this.likesCount = (this.likesCount || 0) + 1;
+  }
+
+  decrementLikes(): void {
+    this.likesCount = Math.max(0, (this.likesCount || 0) - 1);
+  }
+
+  incrementShares(): void {
+    this.sharesCount = (this.sharesCount || 0) + 1;
+  }
+
   static create(
     videoId: string,
     authorId: string,
@@ -52,6 +70,8 @@ export class Video {
     videoFile: string,
     views: number,
     config: VideoConfig,
+    likesCount = 0,
+    sharesCount = 0,
   ): Video {
     const video = new Video();
     if (videoId) {
@@ -63,6 +83,8 @@ export class Video {
     video.thumbnail = thumbnail;
     video.videoFile = videoFile;
     video.views = views ?? 0;
+    video.likesCount = likesCount ?? 0;
+    video.sharesCount = sharesCount ?? 0;
     video.config = config;
     return video;
   }
