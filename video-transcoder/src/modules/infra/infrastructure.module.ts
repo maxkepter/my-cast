@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { QueueModule } from './queue/queue.module';
-import { VideoTranscodeModule } from '../video-transcode/video-transcode.module';
+import { VideoTranscodeModule } from './video-transcode';
 
 @Module({
   imports: [QueueModule, VideoTranscodeModule],
