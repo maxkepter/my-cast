@@ -24,10 +24,9 @@ for (const p of [
   }
 }
 
-const ENDPOINT =
-  process.env.JEV_ENDPOINT_URL || "https://router.kepter.id.vn/v1/systemone";
+const ENDPOINT = process.env.JEV_ENDPOINT_URL || "localhost:8080/v1/systemone";
 const API_KEY = process.env.JEV_API_KEY;
-const MODEL = process.env.JEV_MODEL || "oc/jev-1.13-free";
+const MODEL = process.env.JEV_MODEL || "systemone-1.0";
 
 /**
  * Adapter layer: Chuẩn hóa 5 kiểu câu hỏi (noul, noun, string, score/number, list)
@@ -110,7 +109,9 @@ function prepareQuestions(rawQuestions) {
       };
       transforms[id] = { type: "score" };
     } else if (type === "list") {
-      const options = q.options || (typeof q.criteria === "string" ? q.criteria.split(",") : []);
+      const options =
+        q.options ||
+        (typeof q.criteria === "string" ? q.criteria.split(",") : []);
       transforms[id] = { type: "list", options };
       for (const opt of options) {
         const cleanOpt = opt.trim();
