@@ -1,7 +1,3 @@
-/*
-https://docs.nestjs.com/modules
-*/
-
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
 import { CacheModule } from './cache/cache.module';
@@ -10,7 +6,7 @@ import { QueueModule } from './queue/queue.module';
 import { MailModule } from './mail/mail.module';
 import { StorageModule } from './storage/storage.module';
 import { EventModule } from './event/event.module';
-import { FfmpegModule } from './ffmpeg/ffmpeg.module';
+import { VideoTranscodeModule } from './video-transcode/video-transcode.module';
 
 @Module({
   imports: [
@@ -21,7 +17,7 @@ import { FfmpegModule } from './ffmpeg/ffmpeg.module';
     MailModule,
     StorageModule,
     EventModule,
-    FfmpegModule,
+    VideoTranscodeModule,
   ],
   controllers: [],
   providers: [],
@@ -33,7 +29,7 @@ import { FfmpegModule } from './ffmpeg/ffmpeg.module';
     MailModule,
     StorageModule,
     EventModule,
-    FfmpegModule,
+    VideoTranscodeModule,
   ],
 })
 export class InfrastructureModule {}
