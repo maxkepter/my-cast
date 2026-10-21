@@ -1,10 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DeleteStorageEvent } from '../../domain/events/delete-storage.event';
 import { Handler } from '../../../../../common/application/handler';
-import {
-  STORAGE_SERVICE,
-  StorageService,
-} from '../interface/storage.interface';
+import { STORAGE_SERVICE, StorageService } from '../ports/storage.interface';
 
 @Injectable()
 export class DeleteStorageHandler implements Handler<DeleteStorageEvent> {

@@ -14,13 +14,14 @@ import { Observable } from 'rxjs';
 import {
   STORAGE_SERVICE,
   StorageService,
-} from '../../application/interface/storage.interface';
+} from '../../application/ports/storage.interface';
 import { Reflector } from '@nestjs/core';
-import { StorageUploadOption } from '../decorators/storage-upload.decorator';
-import { PresignedDowloadResponse, UploadRequest } from '../../dtos/dto';
+import { StorageUploadOption } from '../../application/types/storage-pool.type';
+import { PresignedDowloadRes } from '../../dtos/res.dto';
+import { UploadReq } from '../../dtos/req.dto';
 import { Request } from 'express';
 import { randomUUID } from 'crypto';
-import { FILE_PATH, FILES_PATH } from '../../storage.contanst';
+import { FILE_PATH, FILES_PATH } from '../../storage.constant';
 
 @Injectable()
 export class StorageInterceptor implements NestInterceptor {
@@ -39,13 +40,13 @@ export class StorageInterceptor implements NestInterceptor {
   private async uploadFiles(
     files: Express.Multer.File[],
     path: string,
-  ): Promise<PresignedDowloadResponse[]> {
+  ): Promise<PresignedDowloadRes[]> {
     try {
       return await Promise.all(
         files.map((file) => {
           const key = `${path}/${randomUUID()}-${file.originalname}`;
 
-          const dto: UploadRequest = {
+          const dto: UploadReq = {
             key,
             body: file.buffer,
             originalName: file.originalname,
@@ -81,11 +82,7 @@ export class StorageInterceptor implements NestInterceptor {
 
     // 1. FileInterceptor: req.file
     if (req[FILE_PATH]?.buffer) {
-      console.log('Is FileInterceptor');
-
       const file = req[FILE_PATH];
-
-      console.log('File:', file);
 
       const opt = options.find((o) => o.field === file.fieldname) || options[0];
       const path = this.resolvePath(opt.path, req);
