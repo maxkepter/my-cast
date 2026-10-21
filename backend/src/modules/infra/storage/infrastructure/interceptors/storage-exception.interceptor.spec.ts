@@ -3,9 +3,7 @@ import { lastValueFrom, of, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import { StorageExceptionInterceptor } from './storage-exception.interceptor';
 import {
-  EnvStorageNodeReadOnlyException,
   InvalidStorageInputException,
-  StorageModeReadOnlyException,
   StorageNodeHasDataException,
   StorageNodeIdExistsException,
   StorageNodeNotFoundException,
@@ -45,39 +43,6 @@ describe('StorageExceptionInterceptor', () => {
       status: HttpStatus.CONFLICT,
       response: {
         code: 'STORAGE_NODE_ID_EXISTS',
-      },
-    });
-  });
-
-  it('maps StorageModeReadOnlyException to 403 FORBIDDEN', async () => {
-    const error = new StorageModeReadOnlyException();
-    const next: CallHandler = {
-      handle: () => throwError(() => error),
-    };
-
-    await expect(
-      lastValueFrom(interceptor.intercept(context, next)),
-    ).rejects.toMatchObject({
-      status: HttpStatus.FORBIDDEN,
-      response: {
-        code: 'STORAGE_MODE_READ_ONLY',
-        message: 'DB storage nodes are read-only while STORAGE_MODE=env',
-      },
-    });
-  });
-
-  it('maps EnvStorageNodeReadOnlyException to 403 FORBIDDEN', async () => {
-    const error = new EnvStorageNodeReadOnlyException();
-    const next: CallHandler = {
-      handle: () => throwError(() => error),
-    };
-
-    await expect(
-      lastValueFrom(interceptor.intercept(context, next)),
-    ).rejects.toMatchObject({
-      status: HttpStatus.FORBIDDEN,
-      response: {
-        code: 'ENV_STORAGE_NODE_READ_ONLY',
       },
     });
   });

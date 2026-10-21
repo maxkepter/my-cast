@@ -1,9 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import {
-  ENV_STORAGE_NODE_READER,
-  EnvStorageNodeReaderPort,
-} from '../ports/env-storage-node-reader.port';
 import {
   CreateStorageNodeReq,
   StorageNodeListQueryReq,
@@ -14,27 +9,19 @@ import {
   StorageNodeListRes,
   StorageNodeRes,
 } from '../../dtos/res.dto';
-import { StorageLoadMode } from '../../domain/enums/storage-mode.enum';
-import { StorageNodeSource } from '../../domain/enums/storage-node-source.enum';
-
 import {
   InvalidStorageInputException,
   StorageNodeIdExistsException,
   StorageNodeNotFoundException,
   StorageNodeUnreachableException,
 } from '../../domain/exceptions';
-
 import { StorageNode } from '../../domain/entities/storage-node.entity';
-
-const asNumber = (value: string | number | null | undefined): number => Number(value ?? 0);
 import {
   StoragePoolManagerPort,
   STORAGE_POOL_MANAGER,
 } from '../ports/storage-pool-manager.port';
 import { StorageNodeAdminService as StorageNodeAdminServicePort } from '../ports/storage-node-admin.port';
-import { StorageModePolicy } from '../policies/storage-mode.policy';
 import { StorageNodeDeletionPolicy } from '../policies/storage-node-deletion.policy';
-
 import {
   STORAGE_NODE_REPOSITORY,
   StorageNodeRepository,
@@ -48,60 +35,33 @@ import {
   S3BucketProbe,
 } from '../ports/s3-bucket-probe.interface';
 
+const asNumber = (value: string | number | null | undefined): number =>
+  Number(value ?? 0);
+
 @Injectable()
 export class StorageNodeAdminService implements StorageNodeAdminServicePort {
   constructor(
-    private readonly config: ConfigService,
     @Inject(STORAGE_NODE_REPOSITORY)
     private readonly nodes: StorageNodeRepository,
     @Inject(STORAGE_OBJECT_READ_REPOSITORY)
     private readonly objects: StorageObjectReadRepository,
-    @Inject(S3_BUCKET_PROBE) private readonly probe: S3BucketProbe,
-    @Inject(STORAGE_POOL_MANAGER) private readonly pool: StoragePoolManagerPort,
-    @Inject(ENV_STORAGE_NODE_READER)
-    private readonly envNodeReader: EnvStorageNodeReaderPort,
-    private readonly modePolicy: StorageModePolicy,
+    @Inject(S3_BUCKET_PROBE)
+    private readonly probe: S3BucketProbe,
+    @Inject(STORAGE_POOL_MANAGER)
+    private readonly pool: StoragePoolManagerPort,
     private readonly deletionPolicy: StorageNodeDeletionPolicy,
   ) {}
 
   async list(query: StorageNodeListQueryReq = {}): Promise<StorageNodeListRes> {
-    const mode = this.getMode();
-    const requestedSource = query.source;
-    let rows: Array<{ node: StorageNode; source: StorageNodeSource }> =
-      [];
-    if (
-      mode !== StorageLoadMode.DB &&
-      (requestedSource === undefined ||
-        requestedSource === StorageLoadMode.BOTH ||
-        requestedSource === StorageLoadMode.ENV)
-    ) {
-      rows.push(
-        ...this.envNodeReader.getNodes().map((node) => ({
-          node,
-          source: StorageNodeSource.ENV,
-        })),
-      );
-    }
-    if (
-      mode !== StorageLoadMode.ENV &&
-      (requestedSource === undefined ||
-        requestedSource === StorageLoadMode.BOTH ||
-        requestedSource === StorageLoadMode.DB)
-    ) {
-      const dbNodes = await this.nodes.findAll();
-      rows.push(
-        ...dbNodes.map((node) => ({ node, source: StorageNodeSource.DB })),
-      );
-    }
+    let dbNodes = await this.nodes.findAll();
     if (query.status) {
       const healthy = query.status === 'healthy';
-      rows = rows.filter(({ node }) => node.isHealthy === healthy);
+      dbNodes = dbNodes.filter((node) => node.isHealthy === healthy);
     }
-    const nodes = rows.map(({ node, source }) =>
+    const nodes = dbNodes.map((node) =>
       StorageNodeRes.of(
         node.nodeId,
         node.name,
-        source,
         node.endpoint,
         node.region,
         node.bucket,
@@ -112,11 +72,10 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
         node.createdAt ?? new Date(0),
       ),
     );
-    return { mode, totalNodes: nodes.length, nodes };
+    return StorageNodeListRes.of(nodes.length, nodes);
   }
 
   async create(input: CreateStorageNodeReq): Promise<StorageNodeRes> {
-    this.modePolicy.assertDbWriteAllowed(this.getMode());
     this.validateSafeInteger(input.quotaBytes, 'quotaBytes');
 
     if (await this.nodes.findById(input.id)) {
@@ -152,7 +111,6 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
     return StorageNodeRes.of(
       created.nodeId,
       created.name,
-      StorageNodeSource.DB,
       created.endpoint,
       created.region,
       created.bucket,
@@ -168,13 +126,11 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
     id: string,
     input: UpdateStorageNodeReq,
   ): Promise<StorageNodeRes> {
-    this.modePolicy.assertDbWriteAllowed(this.getMode());
     if (!Object.keys(input).length)
       throw new InvalidStorageInputException(
         'At least one field must be supplied.',
       );
-    const current = await this.findDbNode(id);
-    this.modePolicy.assertNodeWritable(this.getMode(), StorageNodeSource.DB);
+    const current = await this.findNode(id);
     if (input.quotaBytes !== undefined)
       this.validateSafeInteger(input.quotaBytes, 'quotaBytes');
     const connectionChanged = [
@@ -202,7 +158,6 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
     return StorageNodeRes.of(
       updated.nodeId,
       updated.name,
-      StorageNodeSource.DB,
       updated.endpoint,
       updated.region,
       updated.bucket,
@@ -215,9 +170,7 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
   }
 
   async remove(id: string): Promise<void> {
-    this.modePolicy.assertDbWriteAllowed(this.getMode());
-    const current = await this.findDbNode(id);
-    this.modePolicy.assertNodeWritable(this.getMode(), StorageNodeSource.DB);
+    const current = await this.findNode(id);
     const readyCount = await this.objects.countReadyByNodeId(id);
     this.deletionPolicy.assertDeletable({
       usedBytes: asNumber(current.usedBytes),
@@ -228,9 +181,7 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
   }
 
   async healthCheck(id: string): Promise<StorageNodeHealthRes> {
-    this.modePolicy.assertDbWriteAllowed(this.getMode());
-    const current = await this.findDbNode(id);
-    this.modePolicy.assertNodeWritable(this.getMode(), StorageNodeSource.DB);
+    const current = await this.findNode(id);
     let healthy = true;
     try {
       await this.probeCandidate(current);
@@ -240,35 +191,16 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
     const updated = await this.nodes.update(id, { isHealthy: healthy });
     if (!updated) throw new StorageNodeNotFoundException(id);
     if (healthy && updated.isActive) await this.pool.refreshNode(updated);
-    else if (!healthy) await this.pool.removeNode(id);
-    return {
-      nodeId: id,
-      source: StorageNodeSource.DB,
-      isHealthy: healthy,
-      checkedAt: new Date(),
-    };
+    else if (!healthy || !updated.isActive) await this.pool.removeNode(id);
+    return StorageNodeHealthRes.of(id, healthy, new Date());
   }
 
-  private getMode(): StorageLoadMode {
-    const mode = this.config.get<string>('STORAGE_MODE', 'env');
-
-    if (mode === 'env') return StorageLoadMode.ENV;
-    if (mode === 'db') return StorageLoadMode.DB;
-    if (mode === 'both') return StorageLoadMode.BOTH;
-
-    throw new InvalidStorageInputException(`Invalid STORAGE_MODE: ${mode}`);
-  }
-
-  private async findDbNode(id: string): Promise<StorageNode> {
+  private async findNode(id: string): Promise<StorageNode> {
     const node = await this.nodes.findById(id);
-    if (node) return node;
-    if (
-      this.getMode() !== 'db' &&
-      this.envNodeReader.getNodes().some((candidate) => candidate.nodeId === id)
-    ) {
-      this.modePolicy.assertNodeWritable(this.getMode(), StorageNodeSource.ENV);
+    if (!node) {
+      throw new StorageNodeNotFoundException(id);
     }
-    throw new StorageNodeNotFoundException(id);
+    return node;
   }
 
   private async probeCandidate(node: StorageNode): Promise<void> {

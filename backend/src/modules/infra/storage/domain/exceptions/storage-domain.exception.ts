@@ -10,20 +10,6 @@ export class StorageDomainException extends Error {
   }
 }
 
-export class StorageModeReadOnlyException extends StorageDomainException {
-  constructor(
-    message = 'DB storage nodes are read-only while STORAGE_MODE=env',
-  ) {
-    super('STORAGE_MODE_READ_ONLY', message);
-  }
-}
-
-export class EnvStorageNodeReadOnlyException extends StorageDomainException {
-  constructor(message = 'Environment storage nodes cannot be changed') {
-    super('ENV_STORAGE_NODE_READ_ONLY', message);
-  }
-}
-
 export class StorageNodeHasDataException extends StorageDomainException {
   constructor(
     message = 'Migrate data from this storage node before deleting it.',

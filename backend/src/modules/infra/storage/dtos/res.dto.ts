@@ -1,5 +1,3 @@
-import { StorageLoadMode as StorageMode } from '../domain/enums/storage-mode.enum';
-import { StorageNodeSource } from '../domain/enums/storage-node-source.enum';
 import {
   StoragePresignedDownloadResult,
   StoragePresignedUploadResult,
@@ -85,7 +83,6 @@ export class PresignedUploadRes implements StoragePresignedUploadResult {
 export class StorageNodeRes {
   nodeId!: string;
   name!: string;
-  source!: StorageNodeSource;
   endpoint!: string;
   region!: string;
   bucket!: string;
@@ -98,7 +95,6 @@ export class StorageNodeRes {
   static of(
     nodeId: string,
     name: string,
-    source: StorageNodeSource,
     endpoint: string,
     region: string,
     bucket: string,
@@ -111,7 +107,6 @@ export class StorageNodeRes {
     const res = new StorageNodeRes();
     res.nodeId = nodeId;
     res.name = name;
-    res.source = source;
     res.endpoint = endpoint;
     res.region = region;
     res.bucket = bucket;
@@ -125,17 +120,11 @@ export class StorageNodeRes {
 }
 
 export class StorageNodeListRes {
-  mode!: StorageMode;
   totalNodes!: number;
   nodes!: StorageNodeRes[];
 
-  static of(
-    mode: StorageMode,
-    totalNodes: number,
-    nodes: StorageNodeRes[],
-  ): StorageNodeListRes {
+  static of(totalNodes: number, nodes: StorageNodeRes[]): StorageNodeListRes {
     const res = new StorageNodeListRes();
-    res.mode = mode;
     res.totalNodes = totalNodes;
     res.nodes = nodes;
     return res;
@@ -144,19 +133,16 @@ export class StorageNodeListRes {
 
 export class StorageNodeHealthRes {
   nodeId!: string;
-  source!: StorageNodeSource;
   isHealthy!: boolean;
   checkedAt!: Date;
 
   static of(
     nodeId: string,
-    source: StorageNodeSource,
     isHealthy: boolean,
     checkedAt: Date,
   ): StorageNodeHealthRes {
     const res = new StorageNodeHealthRes();
     res.nodeId = nodeId;
-    res.source = source;
     res.isHealthy = isHealthy;
     res.checkedAt = checkedAt;
     return res;

@@ -9,8 +9,6 @@ import {
 import { Observable, catchError, throwError } from 'rxjs';
 import {
   StorageDomainException,
-  StorageModeReadOnlyException,
-  EnvStorageNodeReadOnlyException,
   StorageNodeHasDataException,
   StorageNodeIdExistsException,
   StorageNodeNotFoundException,
@@ -62,15 +60,6 @@ export class StorageExceptionInterceptor implements NestInterceptor {
       return {
         status: HttpStatus.CONFLICT,
         code: error.code || 'STORAGE_NODE_ID_EXISTS',
-      };
-    }
-    if (
-      error instanceof StorageModeReadOnlyException ||
-      error instanceof EnvStorageNodeReadOnlyException
-    ) {
-      return {
-        status: HttpStatus.FORBIDDEN,
-        code: error.code,
       };
     }
     if (error instanceof StorageNodeHasDataException) {

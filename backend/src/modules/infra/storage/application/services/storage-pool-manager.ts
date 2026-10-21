@@ -1,12 +1,9 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Repository } from 'typeorm';
 import { StorageNode } from '../../domain/entities/storage-node.entity';
-import { EnvStorageNodeReader } from './env-storage-node-reader.service';
 import { StoragePoolEntry } from '../types/storage-pool.type';
-import { StorageLoadMode } from '../../domain/enums';
 import { StoragePoolManagerPort } from '../ports/storage-pool-manager.port';
 
 @Injectable()
@@ -15,19 +12,15 @@ export class StoragePoolManager implements OnModuleInit, StoragePoolManagerPort 
   private roundRobinCursor = 0;
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly envNodeReader: EnvStorageNodeReader,
     @InjectRepository(StorageNode)
     private readonly nodeRepository: Repository<StorageNode>,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const mode = this.configService.get<string>('STORAGE_MODE', 'env');
-    if (mode === StorageLoadMode.ENV || mode === StorageLoadMode.BOTH)
-      for (const node of this.envNodeReader.getNodes()) await this.loadNode(node);
-    if (mode === StorageLoadMode.DB || mode === StorageLoadMode.BOTH)
-      for (const node of await this.nodeRepository.find({ where: { isActive: true } }))
-        await this.loadNode(node);
+    const activeNodes = await this.nodeRepository.find({ where: { isActive: true } });
+    for (const node of activeNodes) {
+      await this.loadNode(node);
+    }
   }
 
   async loadNode(node: StorageNode): Promise<void> {

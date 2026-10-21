@@ -15,9 +15,6 @@ import { StorageListener } from './infrastructure/listeners/storage.listener';
 import { DeleteStorageHandler } from './application/handlers/delete-storage.handler';
 import { STORAGE_SERVICE } from './application/ports/storage.interface';
 import { STORAGE_CONTRACT } from './contracts/storage.contract';
-import { StorageNodeService } from './application/services/storage-node.service';
-import { EnvStorageNodeReader } from './application/services/env-storage-node-reader.service';
-import { ENV_STORAGE_NODE_READER } from './application/ports/env-storage-node-reader.port';
 import { StoragePoolManager } from './application/services/storage-pool-manager';
 import { StorageNodeAdminService } from './application/services/storage-node-admin.service';
 import { STORAGE_NODE_ADMIN_SERVICE } from './application/ports/storage-node-admin.port';
@@ -25,7 +22,6 @@ import { STORAGE_NODE_REPOSITORY } from './domain/repositories/storage-node.repo
 import { STORAGE_OBJECT_READ_REPOSITORY } from './domain/repositories/storage-object-read.repository.interface';
 import { STORAGE_POOL_MANAGER } from './application/ports/storage-pool-manager.port';
 import { S3_BUCKET_PROBE } from './application/ports/s3-bucket-probe.interface';
-import { StorageModePolicy } from './application/policies/storage-mode.policy';
 import { StorageNodeDeletionPolicy } from './application/policies/storage-node-deletion.policy';
 import { StorageNodeTypeOrmRepository } from './infrastructure/repositories/storage-node.typeorm.repository';
 import { StorageObjectTypeOrmReadRepository } from './infrastructure/repositories/storage-object.typeorm.repository';
@@ -45,14 +41,7 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
       provide: STORAGE_NODE_ADMIN_SERVICE,
       useExisting: StorageNodeAdminService,
     },
-    StorageNodeService,
-    StorageModePolicy,
     StorageNodeDeletionPolicy,
-    EnvStorageNodeReader,
-    {
-      provide: ENV_STORAGE_NODE_READER,
-      useExisting: EnvStorageNodeReader,
-    },
     StoragePoolManager,
     S3BucketProbeAdapter,
     StorageNodeTypeOrmRepository,

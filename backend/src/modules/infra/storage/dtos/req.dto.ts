@@ -14,15 +14,9 @@ import {
 } from 'class-validator';
 import 'multer';
 
-import { StorageNodeSource } from '../domain/enums/storage-node-source.enum';
 import { StorageUploadPayload } from '../contracts/storage.contract';
-import { StorageLoadMode } from '../domain/enums';
 
 export class StorageNodeListQueryReq {
-  @IsOptional()
-  @IsEnum(StorageLoadMode)
-  source?: StorageLoadMode;
-
   @IsOptional()
   @IsIn(['healthy', 'unhealthy'])
   status?: 'healthy' | 'unhealthy';
