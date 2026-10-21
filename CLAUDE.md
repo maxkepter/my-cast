@@ -33,6 +33,7 @@
       - **Runner**: Phân phối N module cho N Executor chạy song song độc lập theo contract.
       - **Auditor Pha 1 (Nội bộ module)**: Kiểm thử cô lập từng module, mock dữ liệu và API từ module khác dựa theo mock spec trong contract.
       - **Auditor Pha 2 (Tích hợp toàn bộ)**: Sau khi 100% module pass Pha 1, kiểm thử tích hợp thực tế toàn bộ hệ thống (real DI, event routing, full build/test).
+      - **Ranh giới Runner & Xử lý vi phạm**: Runner **chỉ điều phối**. Tuyệt đối cấm Runner làm việc của Planner (tạo/sửa plan), Executor (viết/sửa code), Auditor (chạy test/audit). **Nếu phát hiện vi phạm: lập tức ngắt toàn bộ agents, chạy lại từ đầu, phát lệnh cảnh cáo cho lần chạy kế tiếp**.
     - Hạ tầng tích hợp: PostgreSQL (TypeORM), Redis (Cache), BullMQ (Queue & background job processing), AWS S3/MinIO (Object storage, presigned URLs), Mailer, Event Emitter / RabbitMQ.
   - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Tuân thủ bảng màu chuẩn tại `frontend/CLAUDE.md` (chủ đạo Lime `#9bf73c` và Base Charcoal `#2d2d2d`).
   - `.claude/skills/systemone`: Module đánh giá ngữ nghĩa và định tuyến AI (JEV SystemOne).
