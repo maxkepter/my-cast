@@ -8,8 +8,8 @@ import { MAX_REDIS_STREAM_LENGTH } from './constant';
 export class RedisStreamService implements IntegrationEventBus {
   constructor(private readonly redisClient: Redis) {}
 
-  async publish(event: DomainEvent): Promise<void> {
-    await this.redisClient.xadd(
+  async publish(event: DomainEvent): Promise<string | null> {
+    const eventId = this.redisClient.xadd(
       event.getEventName(),
       'MAXLEN',
       '~',
@@ -19,6 +19,10 @@ export class RedisStreamService implements IntegrationEventBus {
       event.getEventName(),
       'payload',
       event.serialize(),
+      'publishedAt',
+      Date.now().toString(),
     );
+
+    return eventId;
   }
 }
