@@ -17,10 +17,23 @@
       - **Giao tiếp liên module**: Các module chỉ biết nhau và phụ thuộc nhau ở các **API và schema** (exported Service contracts, DTOs, Event schemas).
       - **Module CHỈ ĐƯỢC IMPORT MODULE**: Khi triển khai NestJS module, phần `imports` chỉ được import module khác (`imports: [OtherModule]`). Tuyệt đối cấm import trực tiếp entity, internal service hay file nội bộ của module khác.
       - **Ma trận phụ thuộc & Contracts chuẩn chỉ**: Planner phải xác định rõ module phụ thuộc vào module nào (upstream) và cung cấp cho module nào (downstream), kèm contract (API, DTO, Event, Mock spec) để các module có thể phát triển và test độc lập.
+      - **Bắt buộc hoàn thiện cấu hình `@Module`**: Khi Planner thiết kế kiến trúc cho từng module (kể cả ở giai đoạn Domain), **bắt buộc phải định nghĩa chi tiết cấu hình `@Module`** (không được để trống placeholder):
+        ```typescript
+        @Module({
+          imports: [TypeOrmModule.forFeature([...]), OtherModule],
+          controllers: [...],
+          providers: [...],
+          exports: [...],
+        })
+        ```
+        Planner phải liệt kê rõ từng phần tử trong `imports` (TypeORM entities, upstream modules), `controllers`, `providers` (domain services, usecase services, handlers), và `exports` (contracts, services công khai).
+    - **Quy ước đặt tên Interface (Interface Naming Convention)**:
+      - **Tuyệt đối KHÔNG sử dụng tiền tố `I` ở đầu tên interface** trong toàn bộ dự án (ví dụ: dùng `UserService`, `UploadVideoUseCase`, `VideoQueryContract` thay vì `IUserService`, `IUploadVideoUseCase`, `IVideoQueryContract`). Quy tắc áp dụng cho cả backend và frontend.
     - **Quy trình điều phối song song & kiểm thử 2 pha**:
       - **Runner**: Phân phối N module cho N Executor chạy song song độc lập theo contract.
       - **Auditor Pha 1 (Nội bộ module)**: Kiểm thử cô lập từng module, mock dữ liệu và API từ module khác dựa theo mock spec trong contract.
       - **Auditor Pha 2 (Tích hợp toàn bộ)**: Sau khi 100% module pass Pha 1, kiểm thử tích hợp thực tế toàn bộ hệ thống (real DI, event routing, full build/test).
+      - **Ranh giới Runner & Xử lý vi phạm**: Runner **chỉ điều phối**. Tuyệt đối cấm Runner làm việc của Planner (tạo/sửa plan), Executor (viết/sửa code), Auditor (chạy test/audit). **Nếu phát hiện vi phạm: lập tức ngắt toàn bộ agents, chạy lại từ đầu, phát lệnh cảnh cáo cho lần chạy kế tiếp**.
     - Hạ tầng tích hợp: PostgreSQL (TypeORM), Redis (Cache), BullMQ (Queue & background job processing), AWS S3/MinIO (Object storage, presigned URLs), Mailer, Event Emitter / RabbitMQ.
   - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Tuân thủ bảng màu chuẩn tại `frontend/CLAUDE.md` (chủ đạo Lime `#9bf73c` và Base Charcoal `#2d2d2d`).
   - `.claude/skills/systemone`: Module đánh giá ngữ nghĩa và định tuyến AI (JEV SystemOne).

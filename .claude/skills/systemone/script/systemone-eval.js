@@ -2,32 +2,41 @@
 const fs = require("fs");
 const path = require("path");
 
-// Auto-load .env from script or skill directory if present
-for (const p of [
-  path.join(__dirname, ".env"),
-  path.join(__dirname, "..", ".env"),
-]) {
-  if (fs.existsSync(p)) {
-    for (const line of fs.readFileSync(p, "utf-8").split("\n")) {
+function loadEnv() {
+  const paths = new Set([
+    path.join(__dirname, ".env"),
+    path.join(__dirname, "..", ".env"),
+    path.join(process.cwd(), ".env"),
+    path.join(process.cwd(), ".claude", "skills", "systemone", "script", ".env"),
+    path.join(process.cwd(), ".claude", "skills", "systemone", ".env"),
+  ]);
+
+  for (const file of paths) {
+    if (!fs.existsSync(file)) continue;
+    const content = fs.readFileSync(file, "utf-8").replace(/^﻿/, "");
+    for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
       const idx = trimmed.indexOf("=");
-      if (idx !== -1) {
-        const k = trimmed.slice(0, idx).trim();
-        const v = trimmed
-          .slice(idx + 1)
-          .trim()
-          .replace(/^['"](.*)['"]$/, "$1");
-        if (!process.env[k]) process.env[k] = v;
-      }
+      if (idx < 0) continue;
+      const key = trimmed.slice(0, idx).trim();
+      const value = trimmed.slice(idx + 1).trim().replace(/^(['"])(.*)\1$/, "$2");
+      if (!process.env[key]?.trim()) process.env[key] = value;
     }
   }
 }
 
-const ENDPOINT =
-  process.env.JEV_ENDPOINT_URL || "https://router.kepter.id.vn/v1/systemone";
-const API_KEY = process.env.JEV_API_KEY;
-const MODEL = process.env.JEV_MODEL || "oc/jev-1.13-free";
+loadEnv();
+
+function getConfig(model) {
+  let endpoint = process.env.JEV_ENDPOINT_URL || "http://localhost:8080/v1/systemone";
+  if (!/^https?:\/\//i.test(endpoint)) endpoint = `http://${endpoint}`;
+  return {
+    endpoint,
+    apiKey: process.env.JEV_API_KEY || process.env.TYPESAFE_API_KEY,
+    model: model || process.env.JEV_MODEL || "systemone-1.0",
+  };
+}
 
 /**
  * Adapter layer: Chuẩn hóa 5 kiểu câu hỏi (noul, noun, string, score/number, list)
@@ -110,7 +119,9 @@ function prepareQuestions(rawQuestions) {
       };
       transforms[id] = { type: "score" };
     } else if (type === "list") {
-      const options = q.options || (typeof q.criteria === "string" ? q.criteria.split(",") : []);
+      const options =
+        q.options ||
+        (typeof q.criteria === "string" ? q.criteria.split(",") : []);
       transforms[id] = { type: "list", options };
       for (const opt of options) {
         const cleanOpt = opt.trim();
@@ -199,14 +210,16 @@ function formatAnswers(rawAnswers, transforms) {
 }
 
 async function evaluate({ state, questions, model }) {
-  if (!API_KEY) {
-    throw new Error("Thiếu biến môi trường JEV_API_KEY.");
+  loadEnv();
+  const config = getConfig(model);
+  if (!config.apiKey) {
+    throw new Error("Thiếu biến môi trường JEV_API_KEY hoặc TYPESAFE_API_KEY.");
   }
 
   const { outboundQuestions, transforms } = prepareQuestions(questions);
 
   const payload = {
-    model: model || MODEL,
+    model: config.model,
     state: typeof state === "string" ? { text: state } : state,
     questions: outboundQuestions,
   };
@@ -215,11 +228,11 @@ async function evaluate({ state, questions, model }) {
   const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
-    const res = await fetch(ENDPOINT, {
+    const res = await fetch(config.endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify(payload),
       signal: controller.signal,
@@ -381,6 +394,27 @@ function parseCliArgs(args) {
 
 async function main() {
   const argv = process.argv.slice(2);
+  if (argv.some((arg) => ["-h", "--help", "help"].includes(arg))) {
+    console.log(`SystemOne Evaluation CLI
+
+Usage: node systemone-eval.js -s <state> [questions]
+       node systemone-eval.js <json-file|json-string>
+       node systemone-eval.js -h|--help
+
+Flags:
+  -s, --state <text|json>        State to evaluate
+  -m, --model <name>             Model override
+  -q, --q <spec>                 id:type:instructions:options
+  --noul <id> <instructions>     Boolean judgment
+  --noun <id> <instructions> <options>
+  --choice <id> <instructions> <criteria>
+  --number <id> <instructions> <min,max>
+  --score <id> <instructions> <levels>
+  --list <id> <instructions> <options>
+  --string <id> <instructions> [options]
+`);
+    return;
+  }
 
   // Mode 1: CLI Flags
   const hasFlags = argv.some((a) => a.startsWith("-"));

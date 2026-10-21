@@ -1,12 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { Request } from 'express';
-
-export type PathResolver = (req: Request) => string;
-
-export interface StorageUploadOption {
-  field: string;
-  path: string | PathResolver;
-}
+import { StorageUploadOption } from '../../application/types/storage-pool.type';
 
 export const STORAGE_OPTIONS = 'STORAGE_OPTIONS';
 

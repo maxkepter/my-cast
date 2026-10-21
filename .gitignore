@@ -40,3 +40,6 @@ Thumbs.db
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Claude agent worktrees
+.claude/worktrees/
