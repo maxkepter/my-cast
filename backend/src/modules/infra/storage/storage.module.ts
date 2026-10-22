@@ -76,18 +76,6 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
     StorageExceptionInterceptor,
     StorageListener,
   ],
-  exports: [
-    STORAGE_CONTRACT,
-    STORAGE_SERVICE,
-    S3StorageService,
-    StorageNodeAdminService,
-    STORAGE_NODE_ADMIN_SERVICE,
-    StoragePoolManager,
-    STORAGE_POOL_MANAGER,
-    DeleteStorageHandler,
-    StorageInterceptor,
-    StorageExceptionInterceptor,
-    StorageListener,
-  ],
+  exports: [STORAGE_CONTRACT, StorageInterceptor, StorageExceptionInterceptor],
 })
 export class StorageModule {}
