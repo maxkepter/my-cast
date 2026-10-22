@@ -1,6 +1,6 @@
-import { S3BucketProbeConfig } from '../types/storage-pool.type';
+import { BucketProbeConfigReq } from '../../dtos/req.dto';
 
-export type { S3BucketProbeConfig };
+export const S3_BUCKET_PROBE = Symbol('S3_BUCKET_PROBE');
 
 export interface S3BucketProbe {
   /**
@@ -9,7 +9,5 @@ export interface S3BucketProbe {
    * @param config - Cấu hình kết nối tới S3/MinIO bucket (endpoint, credentials, region, bucket, ...).
    * @returns `true` nếu bucket tồn tại và có quyền truy cập hợp lệ, ngược lại trả về `false`.
    */
-  headBucket(config: S3BucketProbeConfig): Promise<boolean>;
+  headBucket(config: BucketProbeConfigReq): Promise<boolean>;
 }
-
-export const S3_BUCKET_PROBE = Symbol('S3_BUCKET_PROBE');

@@ -127,3 +127,12 @@ export class UploadReq implements StorageUploadPayload {
     };
   }
 }
+
+export class BucketProbeConfigReq {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  forcePathStyle: boolean;
+}

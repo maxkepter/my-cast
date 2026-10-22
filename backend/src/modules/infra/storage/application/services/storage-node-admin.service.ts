@@ -172,10 +172,10 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
   async remove(id: string): Promise<void> {
     const current = await this.findNode(id);
     const readyCount = await this.objects.countReadyByNodeId(id);
-    this.deletionPolicy.assertDeletable({
-      usedBytes: asNumber(current.usedBytes),
-      readyObjectCount: readyCount,
-    });
+    this.deletionPolicy.assertDeletable(
+      asNumber(current.usedBytes),
+      readyCount,
+    );
     await this.nodes.delete(id);
     await this.pool.removeNode(id);
   }

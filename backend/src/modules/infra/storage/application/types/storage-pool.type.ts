@@ -14,17 +14,3 @@ export interface StorageUploadOption {
   field: string;
   path: string | StoragePathResolver;
 }
-
-export interface S3BucketProbeConfig {
-  endpoint: string;
-  region: string;
-  bucket: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  forcePathStyle: boolean;
-}
-
-export interface StorageNodeDeletionSnapshot {
-  usedBytes: number;
-  readyObjectCount: number;
-}
