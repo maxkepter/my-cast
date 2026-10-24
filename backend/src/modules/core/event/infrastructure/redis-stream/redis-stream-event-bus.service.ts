@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import { DomainEvent } from '../../../../../common/domain/domain-event';
 import { IntegrationEventBus } from '../../application/integration-event-bus.interface';
+import { MAX_REDIS_STREAM_LENGTH } from './constants';
 
-export const MAX_REDIS_STREAM_LENGTH = 10000;
+export { MAX_REDIS_STREAM_LENGTH } from './constants';
 
 @Injectable()
 export class RedisStreamEventBus implements IntegrationEventBus {

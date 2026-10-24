@@ -1,6 +1,13 @@
 import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { RedisStreamConsumerOptions } from './decorators/redis-stream-consume.decorator';
+import {
+  DEFAULT_REDIS_STREAM_BATCH_SIZE,
+  DEFAULT_REDIS_STREAM_BLOCK_TIMEOUT_MS,
+  DEFAULT_REDIS_STREAM_CLAIM_INTERVAL_MS,
+  DEFAULT_REDIS_STREAM_MAX_RETRIES,
+  DEFAULT_REDIS_STREAM_MIN_IDLE_TIME_MS,
+} from './constants';
 
 export class RedisStreamRunner {
   private readonly logger = new Logger(RedisStreamRunner.name);
@@ -10,10 +17,13 @@ export class RedisStreamRunner {
   private readonly consumerName: string;
   private readonly batchSize: number;
   private readonly blockMs: number;
+  private readonly maxRetries: number;
+  private readonly claimIntervalMs: number;
+  private readonly minIdleTimeMs: number;
 
   constructor(
     private readonly redisClient: Redis,
-    options: RedisStreamConsumerOptions,
+    private readonly options: RedisStreamConsumerOptions,
     private readonly handlerMap: Map<string, Function>,
   ) {
     this.stream = options.stream;
@@ -21,14 +31,22 @@ export class RedisStreamRunner {
     this.consumerName =
       options.consumerName ||
       `consumer-${Math.random().toString(36).substring(2, 15)}`;
-    this.batchSize = options.batchSize || 10;
-    this.blockMs = options.blockTimeoutMs || 2000;
+    this.batchSize = options.batchSize || DEFAULT_REDIS_STREAM_BATCH_SIZE;
+    this.blockMs =
+      options.blockTimeoutMs || DEFAULT_REDIS_STREAM_BLOCK_TIMEOUT_MS;
+    this.maxRetries =
+      options.maxRetryAttempts ?? DEFAULT_REDIS_STREAM_MAX_RETRIES;
+    this.claimIntervalMs =
+      options.claimIntervalMs || DEFAULT_REDIS_STREAM_CLAIM_INTERVAL_MS;
+    this.minIdleTimeMs =
+      options.minIdleTimeMs || DEFAULT_REDIS_STREAM_MIN_IDLE_TIME_MS;
   }
 
   async start(): Promise<void> {
     await this.ensureGroupExists();
     this.isRunning = true;
     void this.runLoop();
+    void this.runClaimLoop();
   }
 
   stop(): void {
@@ -87,6 +105,87 @@ export class RedisStreamRunner {
     }
   }
 
+  private async runClaimLoop(): Promise<void> {
+    let startId = '0-0';
+    while (this.isRunning) {
+      try {
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.claimIntervalMs),
+        );
+        if (!this.isRunning) break;
+
+        const result = (await this.redisClient.xautoclaim(
+          this.stream,
+          this.group,
+          this.consumerName,
+          this.minIdleTimeMs,
+          startId,
+          'COUNT',
+          this.batchSize,
+        )) as [string, [string, string[]][], string[]];
+
+        const [nextStartId, claimedMessages] = result;
+        startId = nextStartId;
+
+        for (const [id, fields] of claimedMessages) {
+          this.logger.warn(
+            `Recovered stuck message ${id} from stream [${this.stream}]`,
+          );
+          await this.dispatchWithRetryCheck(id, fields);
+        }
+      } catch (error: any) {
+        this.logger.error(`Error in claim loop [${this.stream}]: ${error.message}`);
+      }
+    }
+  }
+
+  private async dispatchWithRetryCheck(
+    id: string,
+    fields: string[],
+  ): Promise<void> {
+    const pendingInfo = (await this.redisClient.xpending(
+      this.stream,
+      this.group,
+      id,
+      id,
+      1,
+    )) as [string, string, number, number][];
+
+    const retryCount = pendingInfo.length > 0 ? pendingInfo[0][3] : 1;
+
+    if (retryCount > this.maxRetries) {
+      await this.moveToDeadLetterQueue(
+        id,
+        fields,
+        `Max delivery retries (${this.maxRetries}) exceeded`,
+      );
+      return;
+    }
+
+    await this.dispatch(id, fields);
+  }
+
+  private async moveToDeadLetterQueue(
+    id: string,
+    fields: string[],
+    reason: string,
+  ): Promise<void> {
+    const dlqStream = `${this.stream}:dlq`;
+    this.logger.error(`Routing poisoned message ${id} to DLQ: ${dlqStream}`);
+
+    await this.redisClient.xadd(
+      dlqStream,
+      '*',
+      ...fields,
+      'dlqReason',
+      reason,
+      'originalId',
+      id,
+    );
+
+    await this.redisClient.xack(this.stream, this.group, id);
+  }
+
   private async dispatch(id: string, fields: string[]): Promise<void> {
     const raw: Record<string, string> = {};
     for (let i = 0; i < fields.length; i += 2) {
@@ -112,4 +211,3 @@ export class RedisStreamRunner {
     }
   }
 }
-
