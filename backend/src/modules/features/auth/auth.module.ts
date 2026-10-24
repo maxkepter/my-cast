@@ -13,8 +13,8 @@ import { JwtStrategy } from './infra/strategies/jwt.strategy';
 import { JwtGuard } from './infra/guards/jwt.guard';
 import { RoleGuard } from './infra/guards/role.guard';
 import { UserModule } from '../user/user.module';
-import { RedisModule } from '../../infra/cache/redis/redis.module';
-import { EventModule } from '../../infra/event/event.module';
+import { CacheModule } from '../../core/cache/cache.module';
+import { EventModule } from '../../core/event/event.module';
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import { EventModule } from '../../infra/event/event.module';
     }),
     ConfigModule,
     UserModule,
-    RedisModule,
+    CacheModule,
     EventModule,
   ],
   controllers: [AuthController],

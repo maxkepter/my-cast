@@ -34,11 +34,11 @@ import { RefreshTokenService } from './refresh-token.service';
 import {
   INTERNAL_EVENT_BUS,
   InternalEventBus,
-} from '../../../../infra/event/application/internal-event-bus.interface';
+} from '../../../../core/event/application/internal-event-bus.interface';
 import {
   CACHE_SERVICE,
   CacheService,
-} from '../../../../infra/cache/application/interface/cache-service.interface';
+} from '../../../../core/cache/application/interface/cache-service.interface';
 import { UserRegisteredEvent } from '../../domain/events/user-registered.event';
 import { UserCreatedEvent } from '../../../user/domain/events/user-created.event';
 
