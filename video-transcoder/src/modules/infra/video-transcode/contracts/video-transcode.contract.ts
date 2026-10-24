@@ -1,3 +1,6 @@
+export const VIDEO_TRANSCODE_CONTRACT = Symbol('VIDEO_TRANSCODE_CONTRACT');
+export const VIDEO_TRANSCODE_SERVICE = VIDEO_TRANSCODE_CONTRACT;
+
 export interface VideoMetadata {
   duration: number; // giây
   width: number;

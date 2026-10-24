@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
-import { FfmpegModule } from './infra/ffmpeg/ffmpeg.module';
-import { VIDEO_PROCESSING_SERVICE } from './application/interfaces/video-processing.interface';
+import { VIDEO_TRANSCODE_CONTRACT } from './contracts/video-transcode.contract';
+import { FfmpegVideoTranscodeService } from './services/ffmpeg-video-transcode.service';
 
 @Module({
-  imports: [FfmpegModule],
+  imports: [],
   controllers: [],
-  providers: [],
-  exports: [VIDEO_PROCESSING_SERVICE],
+  providers: [
+    FfmpegVideoTranscodeService,
+    {
+      provide: VIDEO_TRANSCODE_CONTRACT,
+      useExisting: FfmpegVideoTranscodeService,
+    },
+  ],
+  exports: [VIDEO_TRANSCODE_CONTRACT, FfmpegVideoTranscodeService],
 })
 export class VideoTranscodeModule {}
