@@ -1,35 +1,23 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from './database/database.module';
-import { CacheModule } from './cache/cache.module';
-import { RedisModule } from './cache/redis/redis.module';
-import { QueueModule } from './queue/queue.module';
-import { MailModule } from './mail/mail.module';
-import { StorageModule } from './storage/storage.module';
-import { EventModule } from './event/event.module';
-import { VideoTranscodeModule } from './video-transcode/video-transcode.module';
+import { RedisModule } from './redis/redis.module';
+import { RabbitmqModule } from './rabbitmq/rabbitmq.module';
+import { BullmqModule } from './bullmq/bullmq.module';
+import { MailerModule } from './mailer/mailer.module';
 
 @Module({
   imports: [
-    DatabaseModule,
-    CacheModule,
-    QueueModule,
     RedisModule,
-    MailModule,
-    StorageModule,
-    EventModule,
-    VideoTranscodeModule,
+    RabbitmqModule,
+    BullmqModule,
+    MailerModule,
   ],
   controllers: [],
   providers: [],
   exports: [
-    DatabaseModule,
-    CacheModule,
-    QueueModule,
     RedisModule,
-    MailModule,
-    StorageModule,
-    EventModule,
-    VideoTranscodeModule,
+    RabbitmqModule,
+    BullmqModule,
+    MailerModule,
   ],
 })
 export class InfrastructureModule {}

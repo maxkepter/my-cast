@@ -25,9 +25,7 @@ ffmpeg.setFfprobePath(ffprobePath.path);
 /** Wrap fluent-ffmpeg 'end' event (emits stdout/stderr) into Promise<void> */
 function runCommand(cmd: ffmpeg.FfmpegCommand): Promise<void> {
   return new Promise((resolve, reject) => {
-    cmd
-      .on('end', () => resolve())
-      .on('error', (err: Error) => reject(err));
+    cmd.on('end', () => resolve()).on('error', (err: Error) => reject(err));
   });
 }
 
@@ -72,7 +70,9 @@ export class FfmpegService implements VideoProcessingService {
     return VideoProcessRes.of(request.inputPath, request.outputPath);
   }
 
-  async generateThumbnail(request: GenerateThumbnailReq): Promise<ThumbnailRes> {
+  async generateThumbnail(
+    request: GenerateThumbnailReq,
+  ): Promise<ThumbnailRes> {
     const folder = nodePath.dirname(request.outputPath);
     const filename = nodePath.basename(request.outputPath);
 
@@ -88,11 +88,18 @@ export class FfmpegService implements VideoProcessingService {
         });
     });
 
-    return ThumbnailRes.of(request.inputPath, request.outputPath, request.timestamp);
+    return ThumbnailRes.of(
+      request.inputPath,
+      request.outputPath,
+      request.timestamp,
+    );
   }
 
   async generateHls(request: GenerateHlsReq): Promise<HlsPlaylistRes> {
-    const playlistPath = nodePath.join(request.outputDirectory, request.playlistName);
+    const playlistPath = nodePath.join(
+      request.outputDirectory,
+      request.playlistName,
+    );
 
     const command = ffmpeg(request.inputPath)
       .outputOptions([
@@ -119,8 +126,12 @@ export class FfmpegService implements VideoProcessingService {
       ffmpeg.ffprobe(request.inputPath, (error, metadata) => {
         if (error) return reject(error);
 
-        const videoStream = metadata.streams.find((s) => s.codec_type === 'video');
-        const audioStream = metadata.streams.find((s) => s.codec_type === 'audio');
+        const videoStream = metadata.streams.find(
+          (s) => s.codec_type === 'video',
+        );
+        const audioStream = metadata.streams.find(
+          (s) => s.codec_type === 'audio',
+        );
 
         resolve(
           VideoMetadataRes.of({

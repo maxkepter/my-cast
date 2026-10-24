@@ -1,0 +1,36 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
+import { UserRegisteredEvent } from '../../../../features/auth/domain/events/user-registered.event';
+import { UserCreatedEvent } from '../../../../features/user/domain/events/user-created.event';
+import { SendVerificationEmailHandler } from '../../application/handlers/send-verification-email.handler';
+import { SendWelcomeEmailHandler } from '../../application/handlers/send-welcome-email.handler';
+
+@Injectable()
+export class MailListener {
+  private readonly logger = new Logger(MailListener.name);
+
+  constructor(
+    private readonly sendVerificationEmailHandler: SendVerificationEmailHandler,
+    private readonly sendWelcomeEmailHandler: SendWelcomeEmailHandler,
+  ) {}
+
+  @OnEvent(UserRegisteredEvent.EVENT_NAME, { async: true })
+  async handleUserRegistered(
+    event: UserRegisteredEvent | string,
+  ): Promise<void> {
+    const payload =
+      typeof event === 'string'
+        ? UserRegisteredEvent.deserialize(event)
+        : event;
+    return this.sendVerificationEmailHandler.handle(payload);
+  }
+
+  @OnEvent(UserCreatedEvent.EVENT_NAME, { async: true })
+  async handleUserCreated(event: UserCreatedEvent | string): Promise<void> {
+    const payload =
+      typeof event === 'string'
+        ? UserCreatedEvent.deserialize(event)
+        : event;
+    return this.sendWelcomeEmailHandler.handle(payload);
+  }
+}

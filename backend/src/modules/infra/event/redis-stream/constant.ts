@@ -1,1 +1,0 @@
-export const MAX_REDIS_STREAM_LENGTH = 1000;
