@@ -8,6 +8,10 @@ export interface QueueJobOptions {
 }
 
 export interface QueueService {
-  publish<T>(queueName: string, data: T, options?: QueueJobOptions): Promise<void>;
+  publish<T>(
+    queueName: string,
+    data: T,
+    options?: QueueJobOptions,
+  ): Promise<void>;
   consume<T>(queueName: string, handler: Handler<T>): Promise<void>;
 }

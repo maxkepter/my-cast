@@ -1,6 +1,9 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { QueueJobOptions, QueueService } from '../application/queue-service.interface';
+import {
+  QueueJobOptions,
+  QueueService,
+} from '../application/queue-service.interface';
 import { Handler } from '../../../../common/application/handler';
 
 @Injectable()
@@ -10,7 +13,11 @@ export class RabbitmqService implements QueueService, OnModuleDestroy {
 
   constructor(private readonly amqp: AmqpConnection) {}
 
-  async publish<T>(queueName: string, data: T, _options?: QueueJobOptions): Promise<void> {
+  async publish<T>(
+    queueName: string,
+    data: T,
+    _options?: QueueJobOptions,
+  ): Promise<void> {
     await this.amqp.publish('', queueName, data);
   }
 
@@ -20,17 +27,20 @@ export class RabbitmqService implements QueueService, OnModuleDestroy {
     const channel = this.amqp.channel;
     await channel.assertQueue(queueName, { durable: true });
 
-    const { consumerTag } = await channel.consume(queueName, async (msg) => {
-      if (!msg) return;
-      try {
-        const data = JSON.parse(msg.content.toString()) as T;
-        await handler.handle(data);
-        channel.ack(msg);
-      } catch (err) {
-        this.logger.error(`Error processing message from ${queueName}`, err);
-        channel.nack(msg, false, false);
-      }
-    });
+    const { consumerTag } = await channel.consume(
+      queueName,
+      async (msg: any) => {
+        if (!msg) return;
+        try {
+          const data = JSON.parse(msg.content.toString()) as T;
+          await handler.handle(data);
+          channel.ack(msg);
+        } catch (err) {
+          this.logger.error(`Error processing message from ${queueName}`, err);
+          channel.nack(msg, false, false);
+        }
+      },
+    );
 
     this.consumerTags.set(queueName, consumerTag);
   }

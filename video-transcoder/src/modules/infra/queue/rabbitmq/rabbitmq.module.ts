@@ -10,7 +10,10 @@ import { QUEUE_SERVICE } from '../application/queue-service.interface';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('RABBITMQ_URI', 'amqp://guest:guest@localhost:5672'),
+        uri: config.get<string>(
+          'RABBITMQ_URI',
+          'amqp://guest:guest@localhost:5672',
+        ),
         connectionInitOptions: { wait: false },
         enableControllerDiscovery: true,
       }),
