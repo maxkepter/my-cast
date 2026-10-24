@@ -61,7 +61,7 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
       useFactory: () => new S3Client({ region: 'us-east-1' }),
     },
     {
-      provide: STORAGE_SERVICE,
+      provide: S3StorageService,
       inject: [S3Client, getRepositoryToken(StorageObject), StoragePoolManager],
       useFactory: (
         client: S3Client,
@@ -69,8 +69,7 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
         pool: StoragePoolManager,
       ) => new S3StorageService(client, undefined, repository, pool),
     },
-    { provide: S3StorageService, useExisting: STORAGE_SERVICE },
-    { provide: STORAGE_CONTRACT, useExisting: STORAGE_SERVICE },
+    { provide: STORAGE_CONTRACT, useExisting: S3StorageService },
     DeleteStorageHandler,
     StorageInterceptor,
     StorageExceptionInterceptor,
