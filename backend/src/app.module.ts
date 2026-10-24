@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { InfrastructureModule } from './modules/infra/infrastructure.module';
 import { CoreModule } from './modules/core/core.module';
 import { FeaturesModule } from './modules/features/features.module';
+import { TestEventConsumer } from './test-event.consumer';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FeaturesModule } from './modules/features/features.module';
     FeaturesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, TestEventConsumer],
 })
 export class AppModule {}
+
