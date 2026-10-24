@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { UserRegisteredEvent } from '../../../../auth/domain/events/user-registered.event';
-import { UserCreatedEvent } from '../../../../user/domain/events/user-created.event';
+import { UserRegisteredEvent } from '../../../../features/auth/domain/events/user-registered.event';
+import { UserCreatedEvent } from '../../../../features/user/domain/events/user-created.event';
 import { SendVerificationEmailHandler } from '../../application/handlers/send-verification-email.handler';
 import { SendWelcomeEmailHandler } from '../../application/handlers/send-welcome-email.handler';
 

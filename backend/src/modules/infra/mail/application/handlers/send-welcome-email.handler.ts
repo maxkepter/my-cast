@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Handler } from '../../../../../common/application/handler';
-import { UserCreatedEvent } from '../../../../user/domain/events/user-created.event';
+import { UserCreatedEvent } from '../../../../features/user/domain/events/user-created.event';
 import {
   MAIL_SERVICE,
   MailService,

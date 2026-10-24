@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from '../../auth/auth.module';
+import { AuthModule } from '../../features/auth/auth.module';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StorageObject } from './domain/entities/storage.entity';

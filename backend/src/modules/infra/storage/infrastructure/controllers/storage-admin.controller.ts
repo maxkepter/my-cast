@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common';
-import { AuthModule } from '../../../../auth/auth.module';
-import { Roles } from '../../../../auth/infra/decorators/role.decorator';
-import { JwtGuard } from '../../../../auth/infra/guards/jwt.guard';
-import { RoleGuard } from '../../../../auth/infra/guards/role.guard';
-import { Role } from '../../../../user/domain/enums/role.enum';
+import { AuthModule } from '../../../../features/auth/auth.module';
+import { Roles } from '../../../../features/auth/infra/decorators/role.decorator';
+import { JwtGuard } from '../../../../features/auth/infra/guards/jwt.guard';
+import { RoleGuard } from '../../../../features/auth/infra/guards/role.guard';
+import { Role } from '../../../../features/user/domain/enums/role.enum';
 
 //pony_tail: Auth currently exports guards only; public auth barrel/contracts are the upgrade path.
 import { CreateStorageNodeReq, StorageNodeListQueryReq, UpdateStorageNodeReq } from '../../dtos/req.dto';
