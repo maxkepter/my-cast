@@ -1,8 +1,20 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { PlaylistVisibility } from '../domain/enums/playlist-visibility.enum';
 import { VideoVisibility } from '../domain/enums/video-visibility.enum';
 import { SharePlatform } from '../domain/enums/share-platform.enum';
 import { AtLeastNonEmpty } from '../../../../common/validators/at-least-non-empty.validator';
+import { PageReq } from '../../../../common/dtos/page.dto';
 
 export class CreatePlaylistReq {
   @IsNotEmpty({ message: 'Playlist name is required' })
@@ -34,15 +46,56 @@ export class AddVideoToPlaylistReq {
   message: 'At least one field must be provided for update',
 })
 export class UpdateVideoReq {
-  visibility: VideoVisibility;
+  @IsOptional()
+  @IsEnum(VideoVisibility, {
+    message: 'Visibility must be one of PUBLIC, PRIVATE, UNLISTED, SCHEDULED',
+  })
+  visibility?: VideoVisibility;
 
-  allowComments: boolean;
+  @IsOptional()
+  @IsBoolean({ message: 'allowComments must be a boolean' })
+  allowComments?: boolean;
 
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: 'scheduleAt must be a valid date' })
   scheduleAt?: Date;
 
+  @IsOptional()
+  @IsString({ message: 'title must be a string' })
   title?: string;
 
+  @IsOptional()
+  @IsString({ message: 'description must be a string' })
   description?: string;
+}
+
+export class WatchHistoryQueryReq extends PageReq {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'page must be an integer' })
+  @Min(1, { message: 'page must be at least 1' })
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'size must be an integer' })
+  @Min(1, { message: 'size must be at least 1' })
+  size: number = 10;
+}
+
+export class PlaylistQueryReq extends PageReq {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'page must be an integer' })
+  @Min(1, { message: 'page must be at least 1' })
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'size must be an integer' })
+  @Min(1, { message: 'size must be at least 1' })
+  size: number = 10;
 }
 
 export class VideoConfigReq {
