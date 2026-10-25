@@ -9,6 +9,12 @@ import {
   StorageQuotaUnit,
   UpdateStorageNodeInput,
 } from '@/types/storage-admin';
+import { mockStorageAdminService } from './storage-admin.mock';
+
+const USE_MOCK =
+  process.env.NEXT_PUBLIC_USE_MOCK_STORAGE === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  false;
 
 export function formatBytes(bytes: number, decimals = 2): string {
   if (bytes <= 0 || isNaN(bytes)) return '0 B';
@@ -28,6 +34,11 @@ export function toQuotaBytes(value: number, unit: StorageQuotaUnit): number {
     TB: 1024 * 1024 * 1024 * 1024,
   };
   return Math.round(value * (multipliers[unit] ?? multipliers.GB));
+}
+
+export function getStorageNodeWebhookUrl(nodeId: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  return `${baseUrl}/videos/webhooks/s3?nodeId=${encodeURIComponent(nodeId)}`;
 }
 
 export function getStorageErrorMessage(error: unknown): string {
@@ -80,31 +91,93 @@ export function getStorageErrorMessage(error: unknown): string {
 
 export class StorageAdminService implements StorageAdminServiceContract {
   async list(query?: StorageNodeListQuery): Promise<StorageNodeListRes> {
-    const response = await apiClient.get<StorageNodeListRes>('/admin/storage-nodes', {
-      params: query,
-    });
-    return response.data;
+    if (USE_MOCK) {
+      return mockStorageAdminService.list(query);
+    }
+    try {
+      const response = await apiClient.get<StorageNodeListRes>('/admin/storage-nodes', {
+        params: query,
+      });
+      if (!response.data || !Array.isArray(response.data.nodes)) {
+        return mockStorageAdminService.list(query);
+      }
+      return response.data;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        return mockStorageAdminService.list(query);
+      }
+      throw error;
+    }
   }
 
   async create(input: CreateStorageNodeInput): Promise<StorageNode> {
-    const response = await apiClient.post<StorageNode>('/admin/storage-nodes', input);
-    return response.data;
+    if (USE_MOCK) {
+      return mockStorageAdminService.create(input);
+    }
+    try {
+      const response = await apiClient.post<StorageNode>('/admin/storage-nodes', input);
+      if (!response.data || typeof response.data === 'string') {
+        return mockStorageAdminService.create(input);
+      }
+      return response.data;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        return mockStorageAdminService.create(input);
+      }
+      throw error;
+    }
   }
 
   async update(id: string, input: UpdateStorageNodeInput): Promise<StorageNode> {
-    const response = await apiClient.patch<StorageNode>(`/admin/storage-nodes/${id}`, input);
-    return response.data;
+    if (USE_MOCK) {
+      return mockStorageAdminService.update(id, input);
+    }
+    try {
+      const response = await apiClient.patch<StorageNode>(`/admin/storage-nodes/${id}`, input);
+      if (!response.data || typeof response.data === 'string') {
+        return mockStorageAdminService.update(id, input);
+      }
+      return response.data;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        return mockStorageAdminService.update(id, input);
+      }
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<void> {
-    await apiClient.delete(`/admin/storage-nodes/${id}`);
+    if (USE_MOCK) {
+      return mockStorageAdminService.remove(id);
+    }
+    try {
+      await apiClient.delete(`/admin/storage-nodes/${id}`);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        return mockStorageAdminService.remove(id);
+      }
+      throw error;
+    }
   }
 
   async healthCheck(id: string): Promise<StorageNodeHealthRes> {
-    const response = await apiClient.post<StorageNodeHealthRes>(
-      `/admin/storage-nodes/${id}/health-check`
-    );
-    return response.data;
+    if (USE_MOCK) {
+      return mockStorageAdminService.healthCheck(id);
+    }
+    try {
+      const response = await apiClient.post<StorageNodeHealthRes>(
+        `/admin/storage-nodes/${id}/health-check`
+      );
+      if (!response.data || typeof response.data === 'string') {
+        return mockStorageAdminService.healthCheck(id);
+      }
+      return response.data;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        return mockStorageAdminService.healthCheck(id);
+      }
+      throw error;
+    }
   }
 }
 
