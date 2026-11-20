@@ -46,10 +46,8 @@ apiClient.interceptors.response.use(
     const requestUrl = originalRequest?.url || '';
 
     const isAuthRoute =
-      requestUrl.includes('/auth/login') ||
-      requestUrl.includes('/auth/register') ||
-      requestUrl.includes('/auth/refresh-token') ||
-      requestUrl.includes('/auth/verify-email');
+      requestUrl.includes('/auth/google') ||
+      requestUrl.includes('/auth/refresh-token');
 
     if (error.response?.status === 401 && !isAuthRoute) {
       if (originalRequest._retry) {
