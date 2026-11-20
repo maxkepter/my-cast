@@ -48,3 +48,5 @@ Thumbs.db
 # Graphify knowledge graph outputs
 graphify-out/
 
+# Documentation plans & audits
+docs/plans/
