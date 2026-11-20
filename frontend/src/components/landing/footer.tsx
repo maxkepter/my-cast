@@ -48,7 +48,7 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-[#ececec] uppercase tracking-wider mb-4">Hỗ trợ & Tài nguyên</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/register" className="hover:text-[#9bf73c] transition-colors">
+                <Link href="/login" className="hover:text-[#9bf73c] transition-colors">
                   Tạo kênh cá nhân
                 </Link>
               </li>
