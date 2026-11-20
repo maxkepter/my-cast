@@ -20,11 +20,11 @@ export class User extends ActiveableEntity {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  password?: string;
+  @Column({ unique: true, nullable: true })
+  googleId?: string;
 
-  updatePassword(newPassword: string): void {
-    this.password = newPassword;
+  updateGoogleId(googleId: string): void {
+    this.googleId = googleId;
   }
 
   updateRole(newRole: Role): void {
@@ -38,16 +38,16 @@ export class User extends ActiveableEntity {
   static create(
     username: string,
     email: string,
-    password: string,
     role: Role = Role.USER,
     profile: UserProfile,
+    googleId?: string,
   ): User {
     const user = new User();
     user.username = username;
     user.email = email;
-    user.password = password;
     user.role = role;
     user.profile = profile;
+    user.googleId = googleId;
     user.isActive = true;
     return user;
   }

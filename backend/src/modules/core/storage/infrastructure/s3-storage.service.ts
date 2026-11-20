@@ -22,10 +22,9 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Repository } from 'typeorm';
 import { StorageObject } from '../domain/entities/storage.entity';
 import { StoragePoolManagerPort } from '../application/ports/storage-pool-manager.port';
-import { StorageService } from '../application/ports/storage.interface';
 
 @Injectable()
-export class S3StorageService implements StorageContract, StorageService {
+export class S3StorageService implements StorageContract {
   constructor(
     private readonly client: S3Client | undefined,
     private readonly bucket: string | undefined,

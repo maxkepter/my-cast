@@ -1,15 +1,18 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DeleteStorageEvent } from '../../domain/events/delete-storage.event';
 import { Handler } from '../../../../../common/application/handler';
-import { STORAGE_SERVICE, StorageService } from '../ports/storage.interface';
+import {
+  STORAGE_CONTRACT,
+  StorageContract,
+} from '../../contracts/storage.contract';
 
 @Injectable()
 export class DeleteStorageHandler implements Handler<DeleteStorageEvent> {
   private readonly logger = new Logger(DeleteStorageHandler.name);
 
   constructor(
-    @Inject(STORAGE_SERVICE)
-    private readonly storageService: StorageService,
+    @Inject(STORAGE_CONTRACT)
+    private readonly storageService: StorageContract,
   ) {}
 
   async handle(event: DeleteStorageEvent): Promise<void> {

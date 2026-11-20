@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StorageNode } from '@/types/storage-admin';
-import { formatBytes } from '@/services/storage-admin.service';
+import { formatBytes, getStorageNodeWebhookUrl } from '@/services/storage-admin.service';
 
 interface StorageNodeTableProps {
   nodes: StorageNode[];
@@ -14,6 +14,8 @@ interface StorageNodeTableProps {
   onViewDetail: (node: StorageNode) => void;
   onEdit: (node: StorageNode) => void;
   onDelete: (node: StorageNode) => void;
+  onOpenWebhookGuide?: (node: StorageNode) => void;
+  onCopyWebhook?: (node: StorageNode) => void;
 }
 
 export function StorageNodeTable({
@@ -26,7 +28,24 @@ export function StorageNodeTable({
   onViewDetail,
   onEdit,
   onDelete,
+  onOpenWebhookGuide,
+  onCopyWebhook,
 }: StorageNodeTableProps) {
+  const [copiedNodeId, setCopiedNodeId] = useState<string | null>(null);
+
+  const handleCopyWebhook = async (node: StorageNode) => {
+    const url = getStorageNodeWebhookUrl(node.nodeId);
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      // fallback ignore clipboard write rejection
+    }
+    setCopiedNodeId(node.nodeId);
+    onCopyWebhook?.(node);
+    setTimeout(() => setCopiedNodeId(null), 2000);
+  };
   const getProgressBarColor = (ratio: number) => {
     if (ratio > 0.9) return 'bg-[#ff5c5c]';
     if (ratio >= 0.7) return 'bg-[#f7c93c]';
@@ -104,6 +123,8 @@ export function StorageNodeTable({
                 const percent = Math.min(100, Math.round(ratio * 100));
                 const isProbing = probingNodeId === node.nodeId;
                 const isToggling = togglingNodeId === node.nodeId;
+                const webhookUrl = getStorageNodeWebhookUrl(node.nodeId);
+                const isCopied = copiedNodeId === node.nodeId;
 
                 return (
                   <tr
@@ -120,7 +141,7 @@ export function StorageNodeTable({
                       </div>
                     </td>
 
-                    {/* S3 Endpoint & Bucket */}
+                    {/* S3 Endpoint & Bucket & Webhook URL */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-xs text-[#d4d4d4] truncate max-w-[200px]" title={node.endpoint}>
@@ -137,6 +158,32 @@ export function StorageNodeTable({
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#3d3d3d] text-[#8a8a8a] border border-[#525252]/40">
                           {node.region}
                         </span>
+                      </div>
+                      {/* Webhook Callback Link & Quick Copy */}
+                      <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-[#525252]/30">
+                        <span className="text-[11px] text-[#8a8a8a] shrink-0">Webhook:</span>
+                        <span
+                          className="font-mono text-[11px] text-[#9bf73c] truncate max-w-[150px]"
+                          title={webhookUrl}
+                        >
+                          {webhookUrl}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyWebhook(node)}
+                          className="p-1 rounded text-[#8a8a8a] hover:text-[#9bf73c] hover:bg-[#3d3d3d] transition-colors shrink-0 cursor-pointer"
+                          title="Sao chép Webhook URL"
+                        >
+                          {isCopied ? (
+                            <span className="text-[10px] text-[#9bf73c] font-semibold px-1 py-0.2 bg-[#9bf73c]/10 rounded border border-[#9bf73c]/30">
+                              Đã copy!
+                            </span>
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     </td>
 
@@ -223,11 +270,25 @@ export function StorageNodeTable({
                     {/* Actions */}
                     <td className="px-5 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Webhook Guide Button */}
+                        {onOpenWebhookGuide && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenWebhookGuide(node)}
+                            className="p-1.5 text-[#8a8a8a] hover:text-[#9bf73c] hover:bg-[#3d3d3d] rounded-lg transition-colors cursor-pointer"
+                            title="Hướng dẫn cấu hình Webhook"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                          </button>
+                        )}
+
                         {/* Drawer Detail */}
                         <button
                           type="button"
                           onClick={() => onViewDetail(node)}
-                          className="p-1.5 text-[#8a8a8a] hover:text-[#ececec] hover:bg-[#3d3d3d] rounded-lg transition-colors"
+                          className="p-1.5 text-[#8a8a8a] hover:text-[#ececec] hover:bg-[#3d3d3d] rounded-lg transition-colors cursor-pointer"
                           title="Xem chi tiết kỹ thuật"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +301,7 @@ export function StorageNodeTable({
                         <button
                           type="button"
                           onClick={() => onEdit(node)}
-                          className="p-1.5 text-[#8a8a8a] hover:text-[#9bf73c] hover:bg-[#3d3d3d] rounded-lg transition-colors"
+                          className="p-1.5 text-[#8a8a8a] hover:text-[#9bf73c] hover:bg-[#3d3d3d] rounded-lg transition-colors cursor-pointer"
                           title="Chỉnh sửa cấu hình"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +313,7 @@ export function StorageNodeTable({
                         <button
                           type="button"
                           onClick={() => onDelete(node)}
-                          className="p-1.5 text-[#8a8a8a] hover:text-[#ff5c5c] hover:bg-[#3d3d3d] rounded-lg transition-colors"
+                          className="p-1.5 text-[#8a8a8a] hover:text-[#ff5c5c] hover:bg-[#3d3d3d] rounded-lg transition-colors cursor-pointer"
                           title="Xóa node lưu trữ"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,6 +339,8 @@ export function StorageNodeTable({
           const percent = Math.min(100, Math.round(ratio * 100));
           const isProbing = probingNodeId === node.nodeId;
           const isToggling = togglingNodeId === node.nodeId;
+          const isCopied = copiedNodeId === node.nodeId;
+          const webhookUrl = getStorageNodeWebhookUrl(node.nodeId);
 
           return (
             <div
@@ -304,7 +367,7 @@ export function StorageNodeTable({
               </div>
 
               {/* Endpoint & Bucket */}
-              <div className="bg-[#1c1c1c] p-2.5 rounded-lg text-xs space-y-1">
+              <div className="bg-[#1c1c1c] p-2.5 rounded-lg text-xs space-y-1.5">
                 <div className="flex items-center justify-between text-[#8a8a8a]">
                   <span>Endpoint:</span>
                   <span className="font-mono text-[#d4d4d4] truncate max-w-[200px]" title={node.endpoint}>
@@ -316,6 +379,35 @@ export function StorageNodeTable({
                   <span className="text-[#ececec]">
                     {node.bucket} ({node.region})
                   </span>
+                </div>
+                {/* Webhook URL row */}
+                <div className="flex items-center justify-between pt-1.5 border-t border-[#525252]/30">
+                  <span className="text-[#8a8a8a]" title={webhookUrl}>Webhook:</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyWebhook(node)}
+                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-[#3d3d3d] hover:bg-[#525252] text-[#ececec] hover:text-[#9bf73c] border border-[#525252]/60 flex items-center gap-1 cursor-pointer"
+                    >
+                      {isCopied ? (
+                        <span className="text-[#9bf73c] font-semibold">Đã copy!</span>
+                      ) : (
+                        <span>Sao chép URL</span>
+                      )}
+                    </button>
+                    {onOpenWebhookGuide && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenWebhookGuide(node)}
+                        className="p-1 text-[#8a8a8a] hover:text-[#9bf73c] bg-[#3d3d3d] rounded cursor-pointer"
+                        title="Hướng dẫn cấu hình Webhook"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 

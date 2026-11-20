@@ -91,7 +91,7 @@ export function Navbar() {
                 Đăng nhập
               </Link>
               <Link
-                href="/register"
+                href="/login"
                 className="rounded-lg bg-[#9bf73c] px-4 py-2 text-sm font-semibold text-[#1c1c1c] shadow-lg shadow-[#9bf73c]/20 hover:bg-[#b6fa6b] active:bg-[#7ad81f] transition-colors"
               >
                 Bắt đầu phát sóng
@@ -172,7 +172,7 @@ export function Navbar() {
                   Đăng nhập
                 </Link>
                 <Link
-                  href="/register"
+                  href="/login"
                   onClick={() => setMobileMenuOpen(false)}
                   className="w-full text-center rounded-lg bg-[#9bf73c] py-2 text-sm font-semibold text-[#1c1c1c] shadow-lg shadow-[#9bf73c]/20"
                 >

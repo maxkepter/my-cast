@@ -1,7 +1,5 @@
 import { ReactNode } from 'react';
-import { User, LoginReq } from './auth';
-
-export type AdminLoginReq = LoginReq;
+import { User } from './auth';
 
 export interface AdminAuthStatus {
   isAdmin: boolean;

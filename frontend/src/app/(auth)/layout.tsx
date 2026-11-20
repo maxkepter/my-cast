@@ -7,42 +7,65 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-[#1c1c1c] px-4 py-12 relative overflow-hidden selection:bg-[#9bf73c] selection:text-[#1c1c1c]">
-      {/* Background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#9bf73c]/10 blur-[130px] pointer-events-none rounded-full" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#2d2d2d] blur-[100px] pointer-events-none rounded-full" />
+    <div className="min-h-screen flex flex-col justify-between bg-[#141414] text-[#ececec] relative overflow-hidden selection:bg-[#9bf73c] selection:text-[#141414]">
+      {/* Background ambient lighting subtle */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#9bf73c]/5 blur-[120px] pointer-events-none rounded-full" />
+      <div className="absolute bottom-0 right-10 w-[400px] h-[300px] bg-[#2d2d2d]/30 blur-[100px] pointer-events-none rounded-full" />
 
-      {/* Brand Header */}
-      <div className="mb-8 text-center z-10">
-        <Link href="/" className="inline-flex items-center gap-2 group">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#9bf73c] text-[#1c1c1c] shadow-lg shadow-[#9bf73c]/20 group-hover:scale-105 transition-transform font-bold">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
-              />
+      {/* Top Header - YouTube Brand Style */}
+      <header className="relative z-20 w-full px-6 py-4 flex items-center justify-between">
+        <Link href="/" className="inline-flex items-center gap-2.5 group">
+          <div className="flex h-9 w-10 items-center justify-center rounded-xl bg-[#9bf73c] text-[#141414] shadow-md shadow-[#9bf73c]/20 group-hover:scale-105 transition-transform">
+            <svg className="h-4 w-4 fill-current ml-0.5" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <span className="text-2xl font-extrabold tracking-tight text-[#ececec]">My-Cast</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xl font-black tracking-tight text-[#ececec]">MyCast</span>
+            <span className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#2d2d2d] text-[#9bf73c] border border-[#3d3d3d] uppercase">
+              Studio
+            </span>
+          </div>
         </Link>
-      </div>
 
-      {/* Auth Card Container */}
-      <div className="w-full max-w-md z-10">{children}</div>
-
-      {/* Footer link */}
-      <div className="mt-8 text-center text-xs text-[#8a8a8a] z-10">
-        <Link href="/" className="hover:text-[#ececec] transition-colors">
-          ← Quay lại trang chủ My-Cast
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs text-[#8a8a8a] hover:text-[#9bf73c] transition-colors py-1.5 px-3 rounded-full hover:bg-[#2d2d2d] border border-transparent hover:border-[#3d3d3d]"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Quay lại MyCast</span>
         </Link>
-      </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md mx-auto">
+          {children}
+        </div>
+      </main>
+
+      {/* Footer YouTube / Google Style */}
+      <footer className="relative z-20 px-6 py-4 text-xs text-[#8a8a8a]">
+        <div className="max-w-md mx-auto flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-2">
+            <span className="text-[#8a8a8a] hover:text-[#ececec] cursor-pointer">Tiếng Việt (Việt Nam)</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Link href="/help" className="hover:text-[#ececec] transition-colors">
+              Trợ giúp
+            </Link>
+            <Link href="/privacy" className="hover:text-[#ececec] transition-colors">
+              Bảo mật
+            </Link>
+            <Link href="/terms" className="hover:text-[#ececec] transition-colors">
+              Điều khoản
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

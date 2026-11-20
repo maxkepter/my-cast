@@ -13,18 +13,15 @@ import { StorageInterceptor } from './infrastructure/interceptors/storage.interc
 import { StorageExceptionInterceptor } from './infrastructure/interceptors/storage-exception.interceptor';
 import { StorageListener } from './infrastructure/listeners/storage.listener';
 import { DeleteStorageHandler } from './application/handlers/delete-storage.handler';
-import { STORAGE_SERVICE } from './application/ports/storage.interface';
 import { STORAGE_CONTRACT } from './contracts/storage.contract';
 import { StoragePoolManager } from './application/services/storage-pool-manager';
 import { StorageNodeAdminService } from './application/services/storage-node-admin.service';
 import { STORAGE_NODE_ADMIN_SERVICE } from './application/ports/storage-node-admin.port';
 import { STORAGE_NODE_REPOSITORY } from './domain/repositories/storage-node.repository.interface';
-import { STORAGE_OBJECT_READ_REPOSITORY } from './domain/repositories/storage-object-read.repository.interface';
 import { STORAGE_POOL_MANAGER } from './application/ports/storage-pool-manager.port';
 import { S3_BUCKET_PROBE } from './application/ports/s3-bucket-probe.interface';
 import { StorageNodeDeletionPolicy } from './application/policies/storage-node-deletion.policy';
 import { StorageNodeTypeOrmRepository } from './infrastructure/repositories/storage-node.typeorm.repository';
-import { StorageObjectTypeOrmReadRepository } from './infrastructure/repositories/storage-object.typeorm.repository';
 import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.adapter';
 
 @Global()
@@ -45,14 +42,9 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
     StoragePoolManager,
     S3BucketProbeAdapter,
     StorageNodeTypeOrmRepository,
-    StorageObjectTypeOrmReadRepository,
     {
       provide: STORAGE_NODE_REPOSITORY,
       useExisting: StorageNodeTypeOrmRepository,
-    },
-    {
-      provide: STORAGE_OBJECT_READ_REPOSITORY,
-      useExisting: StorageObjectTypeOrmReadRepository,
     },
     { provide: S3_BUCKET_PROBE, useExisting: S3BucketProbeAdapter },
     { provide: STORAGE_POOL_MANAGER, useExisting: StoragePoolManager },
@@ -77,7 +69,6 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
   ],
   exports: [
     STORAGE_CONTRACT,
-    STORAGE_SERVICE,
     S3StorageService,
     STORAGE_NODE_ADMIN_SERVICE,
     StorageNodeAdminService,

@@ -37,7 +37,7 @@ export const tokenService = {
   getUser(): User | null {
     if (typeof window === 'undefined') return null;
     try {
-      const raw = localStorage.getItem(USER_KEY);
+      const raw = localStorage.getItem(USER_KEY) || getCookie(USER_KEY);
       return raw ? (JSON.parse(raw) as User) : null;
     } catch {
       return null;
@@ -52,7 +52,9 @@ export const tokenService = {
       setCookie(ACCESS_TOKEN_KEY, accessToken, 7);
       setCookie(REFRESH_TOKEN_KEY, refreshToken, 30);
       if (user) {
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        const userStr = JSON.stringify(user);
+        localStorage.setItem(USER_KEY, userStr);
+        setCookie(USER_KEY, userStr, 7);
       }
     } catch (err) {
       console.error('Failed to store tokens in storage', err);
@@ -67,6 +69,7 @@ export const tokenService = {
       localStorage.removeItem(USER_KEY);
       deleteCookie(ACCESS_TOKEN_KEY);
       deleteCookie(REFRESH_TOKEN_KEY);
+      deleteCookie(USER_KEY);
     } catch (err) {
       console.error('Failed to clear tokens from storage', err);
     }

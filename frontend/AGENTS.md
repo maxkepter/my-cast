@@ -1,9 +1,37 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# Design Guidelines - Color Palette
 
-# This is NOT the Next.js you know
+## Màu gốc
+- Primary (nhấn): `#9bf73c` (Lime, dùng cho CTA, link, trạng thái active)
+- Base (nền tối): `#2d2d2d` (Xám than, dùng làm nền chính hoặc chữ trên nền sáng)
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+## Thang màu trung tính (dẫn xuất từ #2d2d2d)
+- Neutral 950: `#141414` (Nền sâu nhất, sidebar)
+- Neutral 900: `#1c1c1c` (Nền trang dark mode)
+- Neutral 800: `#2d2d2d` (Card, panel - màu gốc)
+- Neutral 700: `#3d3d3d` (Card hover, input nền)
+- Neutral 600: `#525252` (Đường viền, divider)
+- Neutral 400: `#8a8a8a` (Chữ phụ, placeholder)
+- Neutral 200: `#d4d4d4` (Chữ chính trên nền tối)
+- Neutral 100: `#ececec` (Nền phụ light mode / chữ sáng)
+- Neutral 50: `#f7f7f5` (Nền trang light mode)
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+## Thang màu lime (dẫn xuất từ #9bf73c)
+- Lime 50: `#f3ffe0`
+- Lime 200: `#d2fda0`
+- Lime 400: `#b6fa6b`
+- Lime 500: `#9bf73c` (Màu gốc)
+- Lime 600: `#7ad81f`
+- Lime 700: `#5aa616`
+- Lime 900: `#2e5410`
 
-<!-- END:nextjs-agent-rules -->
+## Màu ngữ nghĩa (Semantic)
+- Success: `#9bf73c`
+- Warning: `#f7c93c`
+- Error: `#ff5c5c`
+- Info: `#3cc8f7`
+- Accent phụ: `#b48cff`
+
+## Quy tắc áp dụng
+- Dark mode: nền `#1c1c1c` -> card `#2d2d2d` -> chữ `#ececec` -> nhấn `#9bf73c`.
+- Chữ trên nút lime: luôn dùng `#1c1c1c` hoặc `#2d2d2d`, KHÔNG dùng chữ trắng.
+- Tỷ lệ 60-30-10: 60% trung tính, 30% xám phụ, 10% lime.

@@ -9,6 +9,11 @@ import {
   StorageQuotaUnit,
   UpdateStorageNodeInput,
 } from '@/types/storage-admin';
+import { mockStorageAdminService } from './storage-admin.mock';
+
+export const isMockEnabled = (): boolean => {
+  return process.env.NEXT_PUBLIC_USE_MOCK_STORAGE === 'true';
+};
 
 export function formatBytes(bytes: number, decimals = 2): string {
   if (bytes <= 0 || isNaN(bytes)) return '0 B';
@@ -28,6 +33,11 @@ export function toQuotaBytes(value: number, unit: StorageQuotaUnit): number {
     TB: 1024 * 1024 * 1024 * 1024,
   };
   return Math.round(value * (multipliers[unit] ?? multipliers.GB));
+}
+
+export function getStorageNodeWebhookUrl(nodeId: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  return `${baseUrl}/videos/webhooks/s3?nodeId=${encodeURIComponent(nodeId)}`;
 }
 
 export function getStorageErrorMessage(error: unknown): string {
@@ -80,6 +90,9 @@ export function getStorageErrorMessage(error: unknown): string {
 
 export class StorageAdminService implements StorageAdminServiceContract {
   async list(query?: StorageNodeListQuery): Promise<StorageNodeListRes> {
+    if (isMockEnabled()) {
+      return mockStorageAdminService.list(query);
+    }
     const response = await apiClient.get<StorageNodeListRes>('/admin/storage-nodes', {
       params: query,
     });
@@ -87,20 +100,32 @@ export class StorageAdminService implements StorageAdminServiceContract {
   }
 
   async create(input: CreateStorageNodeInput): Promise<StorageNode> {
+    if (isMockEnabled()) {
+      return mockStorageAdminService.create(input);
+    }
     const response = await apiClient.post<StorageNode>('/admin/storage-nodes', input);
     return response.data;
   }
 
   async update(id: string, input: UpdateStorageNodeInput): Promise<StorageNode> {
+    if (isMockEnabled()) {
+      return mockStorageAdminService.update(id, input);
+    }
     const response = await apiClient.patch<StorageNode>(`/admin/storage-nodes/${id}`, input);
     return response.data;
   }
 
   async remove(id: string): Promise<void> {
+    if (isMockEnabled()) {
+      return mockStorageAdminService.remove(id);
+    }
     await apiClient.delete(`/admin/storage-nodes/${id}`);
   }
 
   async healthCheck(id: string): Promise<StorageNodeHealthRes> {
+    if (isMockEnabled()) {
+      return mockStorageAdminService.healthCheck(id);
+    }
     const response = await apiClient.post<StorageNodeHealthRes>(
       `/admin/storage-nodes/${id}/health-check`
     );

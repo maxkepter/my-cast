@@ -9,7 +9,6 @@ dist/
 build/
 out/
 .next/
-/docs
 
 # Test & coverage
 coverage/
@@ -43,3 +42,11 @@ Thumbs.db
 
 # Claude agent worktrees
 .claude/worktrees/
+
+.playwright-mcp/
+
+# Graphify knowledge graph outputs
+graphify-out/
+
+# Documentation plans & audits
+docs/plans/

@@ -34,7 +34,7 @@ export function HeroSection() {
         {/* Dual Call-to-Action */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/register"
+            href="/login"
             className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-[#9bf73c] px-8 py-4 text-base font-semibold text-[#1c1c1c] shadow-xl shadow-[#9bf73c]/20 hover:bg-[#b6fa6b] active:bg-[#7ad81f] transition-all transform hover:-translate-y-0.5"
           >
             Tạo kênh miễn phí

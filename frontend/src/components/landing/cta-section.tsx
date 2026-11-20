@@ -19,16 +19,10 @@ export function CtaSection() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/register"
+                href="/login"
                 className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl bg-[#9bf73c] px-8 py-3.5 text-base font-semibold text-[#1c1c1c] shadow-xl hover:bg-[#b6fa6b] active:bg-[#7ad81f] transition-colors"
               >
-                Đăng ký tài khoản ngay
-              </Link>
-              <Link
-                href="/login"
-                className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-[#525252] bg-[#1c1c1c]/30 backdrop-blur-md px-8 py-3.5 text-base font-semibold text-[#ececec] hover:bg-[#3d3d3d] hover:text-[#9bf73c] transition-colors"
-              >
-                Đã có tài khoản? Đăng nhập
+                Bắt đầu ngay bằng Google
               </Link>
             </div>
           </div>

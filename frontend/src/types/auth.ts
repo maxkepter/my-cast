@@ -8,6 +8,7 @@ export interface User {
   username: string;
   email: string;
   role: string;
+  googleId?: string;
   profile?: UserProfile;
 }
 
@@ -17,26 +18,8 @@ export interface AuthRes {
   user: User;
 }
 
-export interface RegisterPendingRes {
-  message: string;
-  email: string;
-}
-
-export interface LoginReq {
-  username: string;
-  password: string;
-}
-
-export interface RegisterReq {
-  username: string;
-  email: string;
-  password: string;
-  displayName?: string;
-}
-
-export interface VerifyEmailReq {
-  email: string;
-  code: string;
+export interface GoogleLoginReq {
+  idToken: string;
 }
 
 export interface RefreshTokenReq {

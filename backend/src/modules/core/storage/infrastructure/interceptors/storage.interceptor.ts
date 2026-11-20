@@ -12,9 +12,9 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import {
-  STORAGE_SERVICE,
-  StorageService,
-} from '../../application/ports/storage.interface';
+  STORAGE_CONTRACT,
+  StorageContract,
+} from '../../contracts/storage.contract';
 import { Reflector } from '@nestjs/core';
 import { StorageUploadOption } from '../../application/types/storage-pool.type';
 import { PresignedDowloadRes } from '../../dtos/res.dto';
@@ -26,7 +26,7 @@ import { FILE_PATH, FILES_PATH } from '../../storage.constant';
 @Injectable()
 export class StorageInterceptor implements NestInterceptor {
   constructor(
-    @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
+    @Inject(STORAGE_CONTRACT) private readonly storageService: StorageContract,
     private readonly reflector: Reflector,
   ) {}
 

@@ -27,10 +27,6 @@ import {
   StorageNodeRepository,
 } from '../../domain/repositories/storage-node.repository.interface';
 import {
-  STORAGE_OBJECT_READ_REPOSITORY,
-  StorageObjectReadRepository,
-} from '../../domain/repositories/storage-object-read.repository.interface';
-import {
   S3_BUCKET_PROBE,
   S3BucketProbe,
 } from '../ports/s3-bucket-probe.interface';
@@ -43,8 +39,6 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
   constructor(
     @Inject(STORAGE_NODE_REPOSITORY)
     private readonly nodes: StorageNodeRepository,
-    @Inject(STORAGE_OBJECT_READ_REPOSITORY)
-    private readonly objects: StorageObjectReadRepository,
     @Inject(S3_BUCKET_PROBE)
     private readonly probe: S3BucketProbe,
     @Inject(STORAGE_POOL_MANAGER)
@@ -171,7 +165,7 @@ export class StorageNodeAdminService implements StorageNodeAdminServicePort {
 
   async remove(id: string): Promise<void> {
     const current = await this.findNode(id);
-    const readyCount = await this.objects.countReadyByNodeId(id);
+    const readyCount = await this.nodes.countReadyByNodeId(id);
     this.deletionPolicy.assertDeletable(
       asNumber(current.usedBytes),
       readyCount,

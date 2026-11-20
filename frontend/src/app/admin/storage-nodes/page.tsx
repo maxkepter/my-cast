@@ -10,6 +10,7 @@ import { CreateStorageNodeModal } from '@/components/admin/storage/create-storag
 import { EditStorageNodeModal } from '@/components/admin/storage/edit-storage-node-modal';
 import { DeleteStorageNodeDialog } from '@/components/admin/storage/delete-storage-node-dialog';
 import { StorageNodeDetailDrawer } from '@/components/admin/storage/storage-node-detail-drawer';
+import { StorageWebhookGuideModal } from '@/components/admin/storage/storage-webhook-guide-modal';
 
 interface ToastAlert {
   type: 'success' | 'error' | 'info';
@@ -32,6 +33,7 @@ export default function StorageNodesPage() {
   const [editingNode, setEditingNode] = useState<StorageNode | null>(null);
   const [deletingNode, setDeletingNode] = useState<StorageNode | null>(null);
   const [detailNode, setDetailNode] = useState<StorageNode | null>(null);
+  const [webhookGuideNode, setWebhookGuideNode] = useState<StorageNode | null>(null);
 
   // In-flight Action States
   const [probingNodeId, setProbingNodeId] = useState<string | null>(null);
@@ -313,6 +315,10 @@ export default function StorageNodesPage() {
         onViewDetail={(node) => setDetailNode(node)}
         onEdit={(node) => setEditingNode(node)}
         onDelete={(node) => setDeletingNode(node)}
+        onOpenWebhookGuide={(node) => setWebhookGuideNode(node)}
+        onCopyWebhook={(node) =>
+          showToast('success', `Đã sao chép Webhook URL của node [${node.name}] thành công!`)
+        }
       />
 
       {/* 4. Modals & Dialogs */}
@@ -342,6 +348,13 @@ export default function StorageNodesPage() {
         onClose={() => setDetailNode(null)}
         onProbe={handleProbe}
         isProbing={probingNodeId === detailNode?.nodeId}
+        onOpenWebhookGuide={(node) => setWebhookGuideNode(node)}
+      />
+
+      <StorageWebhookGuideModal
+        isOpen={!!webhookGuideNode}
+        node={webhookGuideNode}
+        onClose={() => setWebhookGuideNode(null)}
       />
     </div>
   );

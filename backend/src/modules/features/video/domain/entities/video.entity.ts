@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { VideoConfig } from '../value-objects/video-config.vo';
+import { VideoStatus } from '../enums/video-status.enum';
 
 @Entity('videos')
 export class Video {
@@ -38,6 +39,9 @@ export class Video {
 
   @Column(() => VideoConfig, { prefix: false })
   config!: VideoConfig;
+
+  @Column({ type: 'enum', enum: VideoStatus, default: VideoStatus.UPLOADING })
+  videoStatus!: VideoStatus;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

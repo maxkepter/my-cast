@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StorageNode } from '@/types/storage-admin';
-import { formatBytes } from '@/services/storage-admin.service';
+import { formatBytes, getStorageNodeWebhookUrl } from '@/services/storage-admin.service';
 
 interface StorageNodeDetailDrawerProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface StorageNodeDetailDrawerProps {
   onClose: () => void;
   onProbe: (nodeId: string) => Promise<void> | void;
   isProbing?: boolean;
+  onOpenWebhookGuide?: (node: StorageNode) => void;
 }
 
 export function StorageNodeDetailDrawer({
@@ -18,8 +19,23 @@ export function StorageNodeDetailDrawer({
   onClose,
   onProbe,
   isProbing = false,
+  onOpenWebhookGuide,
 }: StorageNodeDetailDrawerProps) {
+  const [isCopiedWebhook, setIsCopiedWebhook] = useState(false);
+
   if (!isOpen || !node) return null;
+
+  const webhookUrl = getStorageNodeWebhookUrl(node.nodeId);
+
+  const handleCopyWebhook = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setIsCopiedWebhook(true);
+      setTimeout(() => setIsCopiedWebhook(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
 
   const quota = node.quotaBytes || 0;
   const used = node.usedBytes || 0;
@@ -204,7 +220,65 @@ export function StorageNodeDetailDrawer({
             </div>
           </div>
 
-          {/* Section 3: Metadata Hệ Thống */}
+          {/* Section 3: Cấu hình Webhook Event Notification */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#9bf73c]">
+                Cấu Hình Webhook Event Notification
+              </h4>
+              {onOpenWebhookGuide && (
+                <button
+                  type="button"
+                  onClick={() => onOpenWebhookGuide(node)}
+                  className="text-xs text-[#9bf73c] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Xem hướng dẫn tích hợp</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="bg-[#1c1c1c] p-4 rounded-xl border border-[#525252]/40 space-y-3 text-xs">
+              <p className="text-[#8a8a8a] text-[11px] leading-relaxed">
+                Đăng ký URL này vào MinIO Webhook target, AWS SNS HTTP Subscription hoặc Cloudflare Worker để tự động cập nhật trạng thái video khi tệp upload hoàn tất.
+              </p>
+              <div>
+                <span className="text-[#8a8a8a] block mb-1">Webhook Callback URL:</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={webhookUrl}
+                    className="flex-1 bg-[#2d2d2d] text-[#ececec] font-mono text-xs px-2.5 py-2 rounded-lg border border-[#525252]/40 focus:outline-none select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyWebhook}
+                    className="px-3 py-2 bg-[#9bf73c] hover:bg-[#b6fa6b] text-[#1c1c1c] font-semibold text-xs rounded-lg transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  >
+                    {isCopiedWebhook ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Đã chép</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>Sao chép</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Metadata Hệ Thống */}
           <div className="space-y-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-[#9bf73c]">
               Thông Tin Vận Hành
