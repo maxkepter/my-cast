@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 
 interface YtSidebarProps {
   collapsed?: boolean;
@@ -10,6 +11,7 @@ interface YtSidebarProps {
 
 export function YtSidebar({ collapsed = false }: YtSidebarProps) {
   const pathname = usePathname();
+  const { user, isAuthenticated } = useAuth();
 
   if (collapsed) {
     return (
@@ -42,7 +44,7 @@ export function YtSidebar({ collapsed = false }: YtSidebarProps) {
         </Link>
 
         <Link
-          href="/library"
+          href={isAuthenticated ? "/library" : "/login"}
           className={`flex flex-col items-center gap-1.5 p-2 rounded-xl text-[10px] w-14 transition-colors ${
             pathname === '/library' ? 'text-[#9bf73c] bg-[#222222] font-bold' : 'text-[#8a8a8a] hover:text-[#ececec] hover:bg-[#1f1f1f]'
           }`}
@@ -102,10 +104,31 @@ export function YtSidebar({ collapsed = false }: YtSidebarProps) {
 
       <hr className="border-[#222222]" />
 
+      {/* SECTION CHO NGƯỜI CHƯA ĐĂNG NHẬP: Lời nhắc đăng nhập */}
+      {!isAuthenticated && (
+        <>
+          <div className="px-2 py-1 space-y-3">
+            <p className="text-xs text-[#aaa] leading-relaxed">
+              Đăng nhập để thích video, bình luận và theo dõi kênh yêu thích.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-full border border-[#9bf73c]/50 text-[#9bf73c] hover:bg-[#9bf73c]/10 text-xs font-semibold transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span>Đăng nhập</span>
+            </Link>
+          </div>
+          <hr className="border-[#222222]" />
+        </>
+      )}
+
       {/* SECTION 2: Bạn / Người dùng */}
       <div className="space-y-1 text-xs">
         <Link
-          href="/library"
+          href={isAuthenticated ? "/library" : "/login"}
           className="flex items-center justify-between px-3 py-1 font-bold text-[#ececec] hover:text-[#9bf73c] transition-colors"
         >
           <span className="flex items-center gap-1.5">
@@ -117,7 +140,7 @@ export function YtSidebar({ collapsed = false }: YtSidebarProps) {
         </Link>
 
         <Link
-          href="/channel/tranhoangminh"
+          href={isAuthenticated ? `/channel/${user?.username || 'me'}` : '/login'}
           className={`flex items-center gap-4 px-3 py-2 rounded-xl transition-colors ${
             pathname?.startsWith('/channel') ? 'bg-[#222222] text-[#9bf73c]' : 'text-[#aaa] hover:bg-[#1f1f1f] hover:text-[#ececec]'
           }`}

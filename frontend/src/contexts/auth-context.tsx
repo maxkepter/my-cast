@@ -22,14 +22,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    queueMicrotask(() => {
+    try {
       const savedUser = tokenService.getUser();
       const token = tokenService.getAccessToken();
       if (savedUser && token) {
         setUser(savedUser);
       }
+    } catch (err) {
+      console.error('Failed to restore auth state', err);
+    } finally {
       setIsLoading(false);
-    });
+    }
+
+    const handleStorageChange = () => {
+      const savedUser = tokenService.getUser();
+      const token = tokenService.getAccessToken();
+      if (savedUser && token) {
+        setUser(savedUser);
+      } else {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const loginWithGoogle = async (idToken: string): Promise<User> => {

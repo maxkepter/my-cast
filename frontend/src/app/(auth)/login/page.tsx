@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/auth-context";
@@ -12,10 +12,18 @@ function LoginForm() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isExpired = searchParams.get("expired") === "1";
+
+  // Tự động chuyển hướng nếu người dùng đã đăng nhập
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const redirectUrl = searchParams.get("redirect") || "/";
+      router.replace(redirectUrl);
+    }
+  }, [isLoading, isAuthenticated, router, searchParams]);
 
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse,
@@ -30,7 +38,7 @@ function LoginForm() {
       setErrorMsg(null);
       await loginWithGoogle(credentialResponse.credential);
       const redirectUrl = searchParams.get("redirect") || "/";
-      router.push(redirectUrl);
+      router.replace(redirectUrl);
     } catch (err: unknown) {
       if (err instanceof AxiosError && err.response?.data) {
         const data = err.response.data as ApiErrorResponse;

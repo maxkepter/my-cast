@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
 
 export interface CommentItem {
   id: string;
@@ -56,10 +57,14 @@ export function DiscussionForum({
   initialComments = DEFAULT_COMMENTS,
   onSeekTimestamp,
 }: DiscussionForumProps) {
+  const { user } = useAuth();
   const [comments, setComments] = useState<CommentItem[]>(initialComments);
   const [newComment, setNewComment] = useState('');
   const [newTimestamp, setNewTimestamp] = useState('08:15');
   const [sortBy, setSortBy] = useState<'top' | 'newest'>('top');
+
+  const displayName = user?.profile?.displayName || user?.username || 'Bạn';
+  const initial = displayName.charAt(0).toUpperCase();
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +72,8 @@ export function DiscussionForum({
 
     const item: CommentItem = {
       id: `c_${Date.now()}`,
-      authorName: 'Bạn (Nguyễn Văn An)',
+      authorName: user?.profile?.displayName ? `Bạn (${user.profile.displayName})` : displayName,
+      authorAvatar: user?.profile?.avatar,
       timestampSec: 495,
       timestampText: `Mốc ${newTimestamp}`,
       content: newComment.trim(),
@@ -133,9 +139,18 @@ export function DiscussionForum({
       {/* Form Tạo Thảo Luận Mới Gắn Timestamp */}
       <form onSubmit={handleAddComment} className="space-y-2.5">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#262626] border border-[#3d3d3d] flex items-center justify-center font-bold text-xs text-[#9bf73c] shrink-0">
-            NV
-          </div>
+          {user?.profile?.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.profile.avatar}
+              alt={displayName}
+              className="w-8 h-8 rounded-full object-cover border border-[#9bf73c]/40 shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[#262626] border border-[#3d3d3d] flex items-center justify-center font-bold text-xs text-[#9bf73c] shrink-0">
+              {initial}
+            </div>
+          )}
           <div className="flex-1 space-y-2">
             <textarea
               value={newComment}
