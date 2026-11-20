@@ -1,17 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Tự động chuyển hướng về trang Quản lý Storage Nodes
-    router.replace('/admin/storage-nodes');
-  }, [router]);
-
   return (
     <div className="space-y-6">
       {/* Title & Introduction */}

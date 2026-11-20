@@ -20,7 +20,7 @@ function AdminLoginForm() {
   // Redirect if already authenticated as ADMIN
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role === 'ADMIN') {
-      const redirectUrl = searchParams.get('redirect') || '/admin/storage-nodes';
+      const redirectUrl = searchParams.get('redirect') || '/admin';
       router.replace(redirectUrl);
     }
   }, [isLoading, isAuthenticated, user, router, searchParams]);
@@ -42,7 +42,7 @@ function AdminLoginForm() {
         return;
       }
 
-      const redirectUrl = searchParams.get('redirect') || '/admin/storage-nodes';
+      const redirectUrl = searchParams.get('redirect') || '/admin';
       router.push(redirectUrl);
     } catch (err: unknown) {
       if (err instanceof AxiosError && err.response?.data) {

@@ -34,6 +34,7 @@ function EditStorageNodeForm({ node, onClose, onSuccess }: EditFormProps) {
   const [region, setRegion] = useState(node.region || 'us-east-1');
   const [bucket, setBucket] = useState(node.bucket || '');
   const [forcePathStyle, setForcePathStyle] = useState(true);
+  const [isForcePathStyleChanged, setIsForcePathStyleChanged] = useState(false);
   const [accessKeyId, setAccessKeyId] = useState('');
   const [secretAccessKey, setSecretAccessKey] = useState('');
   const [showSecret, setShowSecret] = useState(false);
@@ -60,17 +61,46 @@ function EditStorageNodeForm({ node, onClose, onSuccess }: EditFormProps) {
       setIsSubmitting(true);
       const quotaBytes = toQuotaBytes(quotaValue, quotaUnit);
 
-      const payload: UpdateStorageNodeInput = {
-        quotaBytes,
-        isActive,
-      };
+      const payload: UpdateStorageNodeInput = {};
 
-      if (endpoint.trim()) payload.endpoint = endpoint.trim();
-      if (region.trim()) payload.region = region.trim();
-      if (bucket.trim()) payload.bucket = bucket.trim();
-      payload.forcePathStyle = forcePathStyle;
-      if (accessKeyId.trim()) payload.accessKeyId = accessKeyId.trim();
-      if (secretAccessKey.trim()) payload.secretAccessKey = secretAccessKey.trim();
+      if (quotaBytes !== node.quotaBytes) {
+        payload.quotaBytes = quotaBytes;
+      }
+
+      if (isActive !== node.isActive) {
+        payload.isActive = isActive;
+      }
+
+      const trimmedEndpoint = endpoint.trim();
+      if (trimmedEndpoint && trimmedEndpoint !== (node.endpoint || '')) {
+        payload.endpoint = trimmedEndpoint;
+      }
+
+      const trimmedRegion = region.trim();
+      if (trimmedRegion && trimmedRegion !== (node.region || '')) {
+        payload.region = trimmedRegion;
+      }
+
+      const trimmedBucket = bucket.trim();
+      if (trimmedBucket && trimmedBucket !== (node.bucket || '')) {
+        payload.bucket = trimmedBucket;
+      }
+
+      if (isForcePathStyleChanged) {
+        payload.forcePathStyle = forcePathStyle;
+      }
+
+      if (accessKeyId.trim()) {
+        payload.accessKeyId = accessKeyId.trim();
+      }
+      if (secretAccessKey.trim()) {
+        payload.secretAccessKey = secretAccessKey.trim();
+      }
+
+      if (Object.keys(payload).length === 0) {
+        handleClose();
+        return;
+      }
 
       const updated = await storageAdminService.update(node.nodeId, payload);
       onSuccess(updated);
@@ -302,7 +332,10 @@ function EditStorageNodeForm({ node, onClose, onSuccess }: EditFormProps) {
                 <input
                   type="checkbox"
                   checked={forcePathStyle}
-                  onChange={(e) => setForcePathStyle(e.target.checked)}
+                  onChange={(e) => {
+                    setForcePathStyle(e.target.checked);
+                    setIsForcePathStyleChanged(true);
+                  }}
                   className="sr-only"
                 />
                 <div
