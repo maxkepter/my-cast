@@ -3,13 +3,27 @@ import { StorageNode } from '../entities/storage-node.entity';
 
 export interface StorageNodeRepository {
   findById(nodeId: string): Promise<StorageNode | null>;
+
   findAll(): Promise<StorageNode[]>;
+
   findActiveNodes(): Promise<StorageNode[]>;
+
   existsById(nodeId: string): Promise<boolean>;
+
   create(input: Partial<StorageNode>): StorageNode;
-  update(nodeId: string, changes: UpdateStorageNodeReq | { isHealthy: boolean }): Promise<StorageNode | null>;
+
+  update(
+    nodeId: string,
+    changes: UpdateStorageNodeReq | { isHealthy: boolean },
+  ): Promise<StorageNode | null>;
+
   delete(nodeId: string): Promise<void>;
+
   save(node: StorageNode): Promise<StorageNode>;
+
+  countReadyByNodeId(nodeId: string): Promise<number>;
+
+  sumReadyBytesByNodeId(nodeId: string): Promise<number>;
 }
 
 export const STORAGE_NODE_REPOSITORY = Symbol('STORAGE_NODE_REPOSITORY');

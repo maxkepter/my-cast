@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StorageNode } from '../../domain/entities/storage-node.entity';
+import { StorageObject } from '../../domain/entities/storage.entity';
 import { StorageNodeRepository } from '../../domain/repositories/storage-node.repository.interface';
 import { UpdateStorageNodeReq } from '../../dtos/req.dto';
 
@@ -10,6 +11,8 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
   constructor(
     @InjectRepository(StorageNode)
     private readonly repository: Repository<StorageNode>,
+    @InjectRepository(StorageObject)
+    private readonly objectRepository: Repository<StorageObject>,
   ) {}
 
   async findById(nodeId: string): Promise<StorageNode | null> {
@@ -38,7 +41,8 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
       forcePathStyle: input.forcePathStyle,
       accessKeyId: input.accessKeyId,
       secretAccessKey: input.secretAccessKey,
-      quotaBytes: input.quotaBytes !== undefined ? String(input.quotaBytes) : '0',
+      quotaBytes:
+        input.quotaBytes !== undefined ? String(input.quotaBytes) : '0',
       usedBytes: input.usedBytes !== undefined ? String(input.usedBytes) : '0',
       isActive: input.isActive ?? true,
       isHealthy: input.isHealthy ?? true,
@@ -53,10 +57,14 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
     const node = await this.repository.findOne({ where: { nodeId } });
     if (!node) return null;
     const patch: Partial<StorageNode> = {};
-    if ('name' in changes && typeof changes.name === 'string') patch.name = changes.name;
-    if ('endpoint' in changes && changes.endpoint !== undefined) patch.endpoint = changes.endpoint;
-    if ('region' in changes && changes.region !== undefined) patch.region = changes.region;
-    if ('bucket' in changes && changes.bucket !== undefined) patch.bucket = changes.bucket;
+    if ('name' in changes && typeof changes.name === 'string')
+      patch.name = changes.name;
+    if ('endpoint' in changes && changes.endpoint !== undefined)
+      patch.endpoint = changes.endpoint;
+    if ('region' in changes && changes.region !== undefined)
+      patch.region = changes.region;
+    if ('bucket' in changes && changes.bucket !== undefined)
+      patch.bucket = changes.bucket;
     if ('forcePathStyle' in changes && changes.forcePathStyle !== undefined)
       patch.forcePathStyle = changes.forcePathStyle;
     if ('accessKeyId' in changes && changes.accessKeyId !== undefined)
@@ -67,8 +75,10 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
       patch.publicUrl = changes.publicUrl;
     if ('quotaBytes' in changes && changes.quotaBytes !== undefined)
       patch.quotaBytes = String(changes.quotaBytes);
-    if ('isActive' in changes && changes.isActive !== undefined) patch.isActive = changes.isActive;
-    if ('isHealthy' in changes && changes.isHealthy !== undefined) patch.isHealthy = changes.isHealthy;
+    if ('isActive' in changes && changes.isActive !== undefined)
+      patch.isActive = changes.isActive;
+    if ('isHealthy' in changes && changes.isHealthy !== undefined)
+      patch.isHealthy = changes.isHealthy;
 
     return this.repository.save(this.repository.merge(node, patch));
   }
@@ -79,5 +89,29 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
 
   async save(node: StorageNode): Promise<StorageNode> {
     return this.repository.save(node);
+  }
+
+  countReadyByNodeId(nodeId: string): Promise<number> {
+    return this.objectRepository.count({
+      where: { storageNodeId: nodeId, status: 'READY' },
+    });
+  }
+
+  async sumReadyBytesByNodeId(nodeId: string): Promise<number> {
+    const result: { total: string | null } | undefined =
+      await this.objectRepository
+        .createQueryBuilder('storage')
+        .select('COALESCE(SUM(CAST(storage.size AS BIGINT)), 0)', 'total')
+        .where('storage.storageNodeId = :nodeId', { nodeId })
+        .andWhere('storage.status = :status', { status: 'READY' })
+        .getRawOne();
+
+    const total = Number(result?.total ?? 0);
+    if (!Number.isSafeInteger(total)) {
+      throw new RangeError(
+        `READY storage byte total for node ${nodeId} exceeds the safe integer range`,
+      );
+    }
+    return total;
   }
 }

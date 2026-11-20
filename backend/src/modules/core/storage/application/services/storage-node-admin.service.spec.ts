@@ -17,18 +17,18 @@ describe('StorageNodeAdminService', () => {
       save: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      countReadyByNodeId: vi.fn().mockResolvedValue(0),
+      sumReadyBytesByNodeId: vi.fn().mockResolvedValue(0),
     };
-    const objects = { countReadyByNodeId: vi.fn().mockResolvedValue(0) };
     const probe = { headBucket: vi.fn().mockResolvedValue(true) };
     const pool = { loadNode: vi.fn(), refreshNode: vi.fn(), removeNode: vi.fn() };
     const service = new StorageNodeAdminService(
       nodes as never,
-      objects as never,
       probe as never,
       pool as never,
       new StorageNodeDeletionPolicy(),
     );
-    return { service, nodes, objects, probe, pool };
+    return { service, nodes, probe, pool };
   };
 
   it('lists nodes from DB and excludes secret credentials', async () => {
@@ -211,9 +211,9 @@ describe('StorageNodeAdminService', () => {
   });
 
   it('blocks deleting a node with READY objects', async () => {
-    const { service, nodes, objects, pool } = makeService();
+    const { service, nodes, pool } = makeService();
     nodes.findById.mockResolvedValue({ nodeId: 'db-1', usedBytes: '0' });
-    objects.countReadyByNodeId.mockResolvedValue(1);
+    nodes.countReadyByNodeId.mockResolvedValue(1);
 
     await expect(service.remove('db-1')).rejects.toBeInstanceOf(
       StorageNodeHasDataException,
@@ -223,9 +223,9 @@ describe('StorageNodeAdminService', () => {
   });
 
   it('blocks deleting a node with usedBytes > 0', async () => {
-    const { service, nodes, objects, pool } = makeService();
+    const { service, nodes, pool } = makeService();
     nodes.findById.mockResolvedValue({ nodeId: 'db-1', usedBytes: '1024' });
-    objects.countReadyByNodeId.mockResolvedValue(0);
+    nodes.countReadyByNodeId.mockResolvedValue(0);
 
     await expect(service.remove('db-1')).rejects.toBeInstanceOf(
       StorageNodeHasDataException,
@@ -235,9 +235,9 @@ describe('StorageNodeAdminService', () => {
   });
 
   it('deletes an empty node and removes from pool', async () => {
-    const { service, nodes, objects, pool } = makeService();
+    const { service, nodes, pool } = makeService();
     nodes.findById.mockResolvedValue({ nodeId: 'db-1', usedBytes: '0' });
-    objects.countReadyByNodeId.mockResolvedValue(0);
+    nodes.countReadyByNodeId.mockResolvedValue(0);
 
     await service.remove('db-1');
 
