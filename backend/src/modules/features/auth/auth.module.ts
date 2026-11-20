@@ -13,7 +13,6 @@ import { JwtStrategy } from './infra/strategies/jwt.strategy';
 import { JwtGuard } from './infra/guards/jwt.guard';
 import { RoleGuard } from './infra/guards/role.guard';
 import { UserModule } from '../user/user.module';
-import { CacheModule } from '../../core/cache/cache.module';
 import { EventModule } from '../../core/event/event.module';
 
 @Module({
@@ -32,7 +31,6 @@ import { EventModule } from '../../core/event/event.module';
     }),
     ConfigModule,
     UserModule,
-    CacheModule,
     EventModule,
   ],
   controllers: [AuthController],
