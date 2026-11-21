@@ -1,31 +1,37 @@
 ---
 name: systemone
-description: Đánh giá có định kiểu và phân loại ngữ nghĩa qua SystemOne Engine (noul, noun, string, number/score, list) trực tiếp bằng CLI flags hoặc Node.js module mà không cần tạo file JSON.
+description: Đánh giá có định kiểu và phân loại ngữ nghĩa qua SystemOne Engine (noul, noun/choice, string, number/score, list) trực tiếp bằng CLI flags, Node.js module hoặc JSON input.
 ---
 
 # SystemOne Evaluation Skill
 
-Skill hỗ trợ đánh giá trực tiếp qua CLI flags, JavaScript API hoặc JSON input, tự động load file `.env` và hỗ trợ đầy đủ 5 kiểu dữ liệu nguyên tử.
+Skill hỗ trợ đánh giá ngữ nghĩa có định kiểu, định tuyến và chấm điểm định lượng trực tiếp qua CLI flags, JavaScript API hoặc JSON input, tự động load file `.env` và hỗ trợ đầy đủ 5 kiểu dữ liệu nguyên tử.
 
-## 1. 5 Primitives Hỗ Trợ Đầy Đủ
+## 1. Cấu hình Biến Môi Trường (Prerequisites)
 
-1. **`noul`** (Boolean / Xác suất):
-   - Đánh giá xác suất đúng/sai [0..1].
-2. **`noun` / `choice`** (Phân loại danh mục):
-   - Chọn đúng 1 phương án trong danh sách `options` kèm phân phối xác suất.
-3. **`string`** (Trích xuất chuỗi):
-   - Trích xuất nhãn/chuỗi cụ thể từ danh sách options hoặc state.
+Cấu hình trong shell environment, `.env` ở thư mục gốc dự án, hoặc `.agents/skills/systemone/script/.env` (tuyệt đối không commit `.env`; xem mẫu tại `.env.example`):
+
+- `JEV_API_KEY` hoặc `TYPESAFE_API_KEY` (bắt buộc): API key xác thực.
+- `JEV_ENDPOINT_URL` (tùy chọn): Custom SystemOne endpoint URL (mặc định `http://localhost:8080/v1/systemone`).
+- `JEV_MODEL` (tùy chọn): Model chỉ định (mặc định `systemone-1.0`).
+
+Nếu chưa cấu hình API key, ghi nhận SystemOne là `Skipped` và nêu rõ lý do đánh giá định tính.
+
+## 2. 5 Primitives Hỗ Trợ Đầy Đủ
+
+1. **`noul`** (Boolean / Xác suất `[0..1]`): Đánh giá xác suất đúng/sai của một mệnh đề.
+2. **`noun` / `choice`** (Phân loại danh mục): Chọn đúng 1 phương án trong danh sách `options` kèm phân phối xác suất.
+3. **`string`** (Trích xuất chuỗi): Trích xuất nhãn/định danh cụ thể từ danh sách options hoặc state.
 4. **`number` / `score`** (Thang điểm đo lường):
    - `number`: Đo lường trên thang số (`min, max`).
    - `score`: Thang điểm dựa trên các level mô tả có thứ tự.
-5. **`list`** (Multi-label):
-   - Chọn nhiều nhãn phù hợp từ danh sách `options` (tự động phân tích đa chiều).
+5. **`list`** (Multi-label): Chọn nhiều nhãn phù hợp từ danh sách `options`.
 
 ---
 
-## 2. Cách Dùng Trực Tiếp (Không Cần File JSON)
+## 3. Cách Dùng Trực Tiếp Qua CLI
 
-Script tại: `.agents/skills/systemone/script/systemone-eval.js` (tự động load `.env`).
+Script tại: `.agents/skills/systemone/script/systemone-eval.js` (chạy `--help` để xem hướng dẫn).
 
 ### Cú pháp CLI Flags Đầy Đủ 5 Types:
 
@@ -40,7 +46,7 @@ node .agents/skills/systemone/script/systemone-eval.js \
   --list <id> "<câu hỏi>" "<tag1,tag2,tag3>"
 ```
 
-### Ví dụ Thực Tế:
+### Ví dụ Thực Tế (MyCast):
 
 ```bash
 node .agents/skills/systemone/script/systemone-eval.js \
@@ -65,10 +71,10 @@ node .agents/skills/systemone/script/systemone-eval.js \
 
 ---
 
-## 3. Cách Dùng Dạng Module Node.js
+## 4. Cách Dùng Dạng Module Node.js
 
 ```javascript
-const { evaluate } = require('./.agents/skills/systemone/script/systemone-eval');
+const { evaluate } = require("./.agents/skills/systemone/script/systemone-eval");
 
 const res = await evaluate({
   state: { text: "Video streaming API" },
@@ -83,9 +89,14 @@ const res = await evaluate({
 
 ---
 
-## 4. Truyền File hoặc Pipe (Tùy chọn)
+## 5. Truyền File hoặc Pipe (Tùy chọn)
 
-Vẫn hỗ trợ đọc file JSON hoặc pipe qua stdin nếu có sẵn:
 ```bash
 node .agents/skills/systemone/script/systemone-eval.js payload.json
 ```
+
+## 6. Quy Chuẩn Báo Cáo (Reporting Standard)
+
+Khi báo cáo kết quả SystemOne trong output của agent, bắt buộc nêu rõ:
+1. **Evaluation Process**: Tóm tắt state input, danh sách primitives đã cấu hình, và lệnh/code đã chạy.
+2. **Results & Decision**: Các giá trị/điểm số/xác suất trả về và quyết định hành động cụ thể dựa trên kết quả đó.
