@@ -25,17 +25,18 @@ trigger: always_on
     - **Quy ước đặt tên Interface**:
       - **Tuyệt đối KHÔNG sử dụng tiền tố `I` ở đầu tên interface** trong toàn bộ dự án.
     - **Quy trình điều phối song song & kiểm thử 2 pha**:
-      - **Runner**: Phân phối N module cho N Executor chạy song song độc lập theo contract.
-      - **Auditor Pha 1 (Nội bộ module)**: Kiểm thử cô lập từng module, mock dữ liệu và API từ module khác dựa theo mock spec trong contract.
+      - **Runner**: Quản lý `docs/workflow/active/YYYY-MM-DD-<slug>/task-matrix.md` (single writer) và phân phối N module cho N Executor chạy song song độc lập theo contract & `Scope (Files)`.
+      - **Auditor Pha 1 (Nội bộ module)**: Kiểm thử cô lập từng module (kèm Scope Lock Check), mock dữ liệu và API từ module khác dựa theo mock spec trong contract.
       - **Auditor Pha 2 (Tích hợp toàn bộ)**: Sau khi 100% module pass Pha 1, kiểm thử tích hợp thực tế toàn bộ hệ thống.
-      - **Ranh giới Runner & Xử lý vi phạm**: Runner **chỉ điều phối**. Tuyệt đối cấm Runner làm việc của Planner, Executor, Auditor.
+      - **Ranh giới Runner & Xử lý vi phạm**: Runner **chỉ điều phối** (chỉ ghi `task-matrix.md` và lưu trữ `docs/workflow/archive/`). Tuyệt đối cấm Runner làm việc của Planner, Executor, Auditor.
   - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Tuân thủ bảng màu chuẩn tại `frontend/AGENTS.md` và hợp đồng thiết kế OpenDesign tại `DESIGN.md` (chủ đạo Lime `#9bf73c` và Base Charcoal `#2d2d2d`).
   - `.agents/skills/open-design`: Tích hợp OpenDesign (open-design.ai) với Antigravity.
   - `.agents/skills/systemone`: Module đánh giá ngữ nghĩa và định tuyến AI (JEV SystemOne).
 
 ## Yêu cầu đối với các Agent: Tăng cường vận dụng Skill SystemOne
-Tất cả các agent (`planner`, `executor`, `auditor`, `runner`) chủ động khai thác skill `systemone` trong mọi tác vụ phân tích, triển khai và kiểm thử.
-- Planner: Đánh giá complexity, risk_level, modules, strategy.
+Tất cả các agent (`business-analyst`, `planner`, `executor`, `auditor`, `runner`) chủ động khai thác skill `systemone` trong mọi tác vụ phân tích, triển khai và kiểm thử khi đã cấu hình `JEV_API_KEY` (hoặc `TYPESAFE_API_KEY`).
+- Business Analyst: Phân loại 9-bucket/saturation, dynamic business rules, testability/ambiguity gate, change impact analysis.
+- Planner: Đánh giá complexity, risk_level, modules, strategy/pattern.
 - Executor: Triage semantic data, routing logic, edge-cases.
-- Auditor: Chấm điểm quality_score, compliance, severity, is_pass.
-- Runner: Đánh giá convergence, can_auto_resolve.
+- Auditor: Chấm điểm quality_score, compliance, severity/risk, is_pass.
+- Runner: Đánh giá convergence, blocker_type, can_auto_resolve.
