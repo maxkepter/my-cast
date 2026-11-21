@@ -1,0 +1,89 @@
+stateDiagram-v2
+    [*] --> SCR_01_HomeFeed : Mở ứng dụng (Web)
+
+    %% -------------------------------------------------------------
+    %% PHÂN VÙNG 1: GUEST & USER / VIEWER
+    %% -------------------------------------------------------------
+    state "Phân vùng Người dùng (Viewer)" as ViewerZone {
+        SCR_01_HomeFeed: SCR-01 Trang chủ & Khám phá (Home / Search)
+        SCR_02_WatchPage: SCR-02 Trang phát video & Tương tác (Watch Page)
+        SCR_04_ChannelPage: SCR-04 Trang chi tiết Kênh (Channel Page)
+        SCR_AUTH_Modal: Modal Đăng nhập / Đăng ký (Auth Modal)
+        MODAL_Report: Modal Gửi báo cáo vi phạm (Report Modal)
+        MODAL_Share: Modal Chia sẻ liên kết (Share Modal)
+        MODAL_Playlist: Modal Thêm vào Playlist (Playlist Modal)
+
+        SCR_01_HomeFeed --> SCR_02_WatchPage : Click Video Card
+        SCR_01_HomeFeed --> SCR_04_ChannelPage : Click Channel Avatar / Name
+        SCR_01_HomeFeed --> SCR_AUTH_Modal : Click "Đăng nhập"
+
+        SCR_02_WatchPage --> SCR_04_ChannelPage : Click Chủ kênh
+        SCR_02_WatchPage --> MODAL_Report : Click "Báo cáo"
+        SCR_02_WatchPage --> MODAL_Share : Click "Chia sẻ"
+        SCR_02_WatchPage --> MODAL_Playlist : Click "Lưu playlist" (Yêu cầu User)
+        SCR_02_WatchPage --> SCR_AUTH_Modal : Tương tác khi chưa đăng nhập (Like/Comment/Save)
+
+        MODAL_Report --> SCR_02_WatchPage : Đóng / Gửi report thành công
+        MODAL_Share --> SCR_02_WatchPage : Đóng / Sao chép link
+        MODAL_Playlist --> SCR_02_WatchPage : Đóng / Lưu thành công
+        SCR_AUTH_Modal --> SCR_01_HomeFeed : Đăng nhập thành công (Redirect)
+    }
+
+    %% -------------------------------------------------------------
+    %% PHÂN VÙNG 2: CREATOR STUDIO
+    %% -------------------------------------------------------------
+    state "Phân vùng Sáng tạo (Creator Studio)" as CreatorZone {
+        SCR_03_Studio: SCR-03 Quản lý nội dung kênh (Creator Studio)
+        MODAL_Upload: Modal Tải lên video mới (<100MB)
+        MODAL_EditVideo: Modal Chỉnh sửa thông tin video
+        DRAWER_TranscodeStatus: Drawer Tiến trình chuyển mã HLS
+
+        SCR_03_Studio --> MODAL_Upload : Click "Tạo mới / Tải lên"
+        SCR_03_Studio --> MODAL_EditVideo : Click "Chi tiết / Chỉnh sửa"
+        SCR_03_Studio --> DRAWER_TranscodeStatus : Click xem trạng thái (PROCESSING/READY/FAILED)
+
+        MODAL_Upload --> DRAWER_TranscodeStatus : Tải lên thành công (<100MB)
+        DRAWER_TranscodeStatus --> SCR_03_Studio : Hoàn tất / Đóng
+        MODAL_EditVideo --> SCR_03_Studio : Lưu thay đổi thành công
+    }
+
+    %% -------------------------------------------------------------
+    %% PHÂN VÙNG 3: STAFF MODERATION DASHBOARD
+    %% -------------------------------------------------------------
+    state "Phân vùng Kiểm duyệt (Staff Dashboard)" as StaffZone {
+        SCR_05_Moderation: SCR-05 Bảng điều hành kiểm duyệt (Staff Dashboard)
+        MODAL_ActionReport: Modal Xử lý báo cáo (Khóa video / Xóa comment)
+        MODAL_ReviewAppeal: Modal Xét duyệt đơn kháng cáo
+
+        SCR_05_Moderation --> MODAL_ActionReport : Chọn báo cáo cần duyệt
+        SCR_05_Moderation --> MODAL_ReviewAppeal : Chọn đơn kháng cáo cần xem
+
+        MODAL_ActionReport --> SCR_05_Moderation : Xác nhận xử phạt / Bác bỏ report
+        MODAL_ReviewAppeal --> SCR_05_Moderation : Chấp thuận (Gỡ phạt) / Từ chối kháng cáo
+    }
+
+    %% -------------------------------------------------------------
+    %% PHÂN VÙNG 4: ADMIN STORAGE PORTAL
+    %% -------------------------------------------------------------
+    state "Phân vùng Quản trị Lưu trữ (Admin Portal)" as AdminZone {
+        SCR_06_StorageAdmin: SCR-06 Quản trị hạ tầng Storage Nodes
+        MODAL_AddNode: Modal Thêm Storage Node mới (Probe check)
+        MODAL_EditNode: Modal Cập nhật cấu hình / Trạng thái Node
+        DIALOG_SafeDelete: Dialog Xác nhận xóa Node an toàn
+
+        SCR_06_StorageAdmin --> MODAL_AddNode : Click "Thêm Node mới"
+        SCR_06_StorageAdmin --> MODAL_EditNode : Click cấu hình / thay đổi trạng thái
+        SCR_06_StorageAdmin --> DIALOG_SafeDelete : Click xóa Node (Active objects == 0)
+
+        MODAL_AddNode --> SCR_06_StorageAdmin : Probe OK & Lưu thành công
+        MODAL_EditNode --> SCR_06_StorageAdmin : Cập nhật thành công
+        DIALOG_SafeDelete --> SCR_06_StorageAdmin : Xóa node thành công
+    }
+
+    %% -------------------------------------------------------------
+    %% CHUYỂN ĐỔI LIÊN PHÂN VÙNG (CROSS-ZONE NAVIGATION)
+    %% -------------------------------------------------------------
+    SCR_01_HomeFeed --> SCR_03_Studio : User chuyển sang Creator Studio (Menu Avatar)
+    SCR_03_Studio --> SCR_02_WatchPage : Creator click xem trước video đã xuất bản
+    SCR_01_HomeFeed --> SCR_05_Moderation : Staff/Admin truy cập Cổng kiểm duyệt
+    SCR_01_HomeFeed --> SCR_06_StorageAdmin : Admin truy cập Quản trị Lưu trữ

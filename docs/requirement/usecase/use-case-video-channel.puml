@@ -1,0 +1,65 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam usecase {
+    BackgroundColor #F8F9FA
+    BorderColor #2D2D2D
+    ArrowColor #2D2D2D
+}
+
+actor "Guest" as Guest
+actor "User / Viewer" as User
+actor "Creator" as Creator
+actor "Transcoder Worker" as Worker <<System>>
+
+Guest <|-- User
+User <|-- Creator
+
+rectangle "Video & Channel Subsystem" {
+    usecase "UC-CHAN-01: Quản lý thông tin kênh\n(ManageChannelUseCase)" as UC_Chan_Manage
+    usecase "UC-CHAN-02: Xem trang kênh\n(ViewChannelUseCase)" as UC_Chan_View
+    usecase "UC-CHAN-03: Theo dõi kênh\n(FollowCreatorUseCase)" as UC_Chan_Follow
+    usecase "UC-CHAN-04: Hủy theo dõi kênh\n(UnfollowCreatorUseCase)" as UC_Chan_Unfollow
+
+    usecase "UC-VID-01: Tải lên video mới\n(UploadVideoUseCase)" as UC_Vid_Upload
+    usecase "UC-VID-02: Xem video (HLS Playback)\n(WatchVideoUseCase)" as UC_Vid_Watch
+    usecase "UC-VID-03: Cập nhật thông tin video\n(UpdateVideoUseCase)" as UC_Vid_Update
+    usecase "UC-VID-04: Xóa video\n(DeleteVideoUseCase)" as UC_Vid_Delete
+    usecase "UC-VID-05: Chia sẻ video\n(ShareVideoUseCase)" as UC_Vid_Share
+    usecase "UC-VID-06: Thích / Bỏ thích video\n(ToggleVideoLikeUseCase)" as UC_Vid_Like
+    usecase "UC-VID-07: Lấy trạng thái tương tác\n(GetVideoReactionStatusUseCase)" as UC_Vid_ReactStatus
+    usecase "UC-VID-08: Tạo danh sách phát\n(CreatePlaylistUseCase)" as UC_Vid_CreatePlaylist
+    usecase "UC-VID-09: Quản lý video trong playlist\n(AddVideoToPlaylistUseCase)" as UC_Vid_ManagePlaylist
+    usecase "UC-VID-10: Xem danh sách phát\n(WatchPlaylistUseCase)" as UC_Vid_WatchPlaylist
+    usecase "UC-VID-11: Xem lịch sử xem\n(ViewWatchHistoryUseCase)" as UC_Vid_History
+
+    usecase "Kiểm tra quyền truy cập\n(Public/Private/Scheduled)" as Sub_CheckAccess
+    usecase "Ghi nhận View Count" as Sub_AddView
+}
+
+Guest --> UC_Chan_View
+Guest --> UC_Vid_Watch
+
+User --> UC_Chan_Follow
+User --> UC_Chan_Unfollow
+User --> UC_Vid_Like
+User --> UC_Vid_ReactStatus
+User --> UC_Vid_CreatePlaylist
+User --> UC_Vid_ManagePlaylist
+User --> UC_Vid_WatchPlaylist
+User --> UC_Vid_History
+
+Creator --> UC_Chan_Manage
+Creator --> UC_Vid_Upload
+Creator --> UC_Vid_Update
+Creator --> UC_Vid_Delete
+
+UC_Vid_Watch ..> Sub_CheckAccess : <<include>>
+UC_Vid_Watch ..> Sub_AddView : <<include>>
+UC_Vid_WatchPlaylist ..> UC_Vid_Watch : <<include>>
+UC_Vid_Share ..> UC_Vid_Watch : <<extend>>
+UC_Vid_Upload ..> Worker : <<emit VideoUploadedEvent>>
+
+@enduml

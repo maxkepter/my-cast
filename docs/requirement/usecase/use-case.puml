@@ -1,0 +1,155 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam monochrome false
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam usecase {
+    BackgroundColor #F8F9FA
+    BorderColor #2D2D2D
+    ArrowColor #2D2D2D
+}
+
+actor "Guest" as Guest
+actor "User / Viewer" as User
+actor "Creator" as Creator
+actor "Staff" as Staff
+actor "Admin" as Admin
+actor "Transcoder Worker" as Worker <<System>>
+actor "Storage Cluster" as Storage <<Secondary>>
+actor "Email Service" as Mail <<Secondary>>
+
+' Actor Generalization
+Guest <|-- User
+User <|-- Creator
+User <|-- Staff
+Staff <|-- Admin
+
+rectangle "MyCast System" {
+
+    package "Module Auth & User" {
+        usecase "UC-AUTH-01: Đăng ký tài khoản\n(RegisterUseCase)" as UC_Auth_Register
+        usecase "UC-AUTH-02: Đăng nhập\n(LoginUseCase)" as UC_Auth_Login
+        usecase "UC-AUTH-03: Quên mật khẩu\n(ForgotPasswordUseCase)" as UC_Auth_Forgot
+        usecase "UC-AUTH-04: Đổi mật khẩu\n(UpdatePasswordUseCase)" as UC_Auth_UpdatePass
+        usecase "UC-USER-01: Cập nhật thông tin cá nhân\n(UpdateUserUseCase)" as UC_User_Update
+        usecase "UC-USER-02: Xem hồ sơ người dùng\n(GetUserUseCase)" as UC_User_Get
+    }
+
+    package "Module Channel" {
+        usecase "UC-CHAN-01: Quản lý thông tin kênh\n(ManageChannelUseCase)" as UC_Chan_Manage
+        usecase "UC-CHAN-02: Xem trang kênh\n(ViewChannelUseCase)" as UC_Chan_View
+        usecase "UC-CHAN-03: Theo dõi kênh\n(FollowCreatorUseCase)" as UC_Chan_Follow
+        usecase "UC-CHAN-04: Hủy theo dõi kênh\n(UnfollowCreatorUseCase)" as UC_Chan_Unfollow
+    }
+
+    package "Module Video & Playback" {
+        usecase "UC-VID-01: Tải lên video mới\n(UploadVideoUseCase)" as UC_Vid_Upload
+        usecase "UC-VID-02: Xem video (HLS Playback)\n(WatchVideoUseCase)" as UC_Vid_Watch
+        usecase "UC-VID-03: Cập nhật thông tin video\n(UpdateVideoUseCase)" as UC_Vid_Update
+        usecase "UC-VID-04: Xóa video\n(DeleteVideoUseCase)" as UC_Vid_Delete
+        usecase "UC-VID-05: Chia sẻ video\n(ShareVideoUseCase)" as UC_Vid_Share
+        usecase "UC-VID-06: Thích / Bỏ thích video\n(ToggleVideoLikeUseCase)" as UC_Vid_Like
+        usecase "UC-VID-07: Lấy trạng thái tương tác\n(GetVideoReactionStatusUseCase)" as UC_Vid_ReactStatus
+        usecase "UC-VID-08: Tạo danh sách phát\n(CreatePlaylistUseCase)" as UC_Vid_CreatePlaylist
+        usecase "UC-VID-09: Quản lý video trong playlist\n(AddVideoToPlaylistUseCase)" as UC_Vid_ManagePlaylist
+        usecase "UC-VID-10: Xem danh sách phát\n(WatchPlaylistUseCase)" as UC_Vid_WatchPlaylist
+        usecase "UC-VID-11: Xem lịch sử xem\n(ViewWatchHistoryUseCase)" as UC_Vid_History
+        usecase "Kiểm tra quyền truy cập" as Sub_CheckPrivacy
+        usecase "Ghi nhận lượt xem" as Sub_LogView
+    }
+
+    package "Module Interaction & Community" {
+        usecase "UC-INT-01: Xem bình luận\n(ViewCommentsUseCase)" as UC_Int_ViewComments
+        usecase "UC-INT-02: Tạo bình luận\n(CreateCommentUseCase)" as UC_Int_CreateComment
+        usecase "UC-INT-03: Chỉnh sửa bình luận\n(UpdateCommentUseCase)" as UC_Int_UpdateComment
+        usecase "UC-INT-04: Xóa bình luận\n(DeleteCommentUseCase)" as UC_Int_DeleteComment
+        usecase "UC-INT-05: Báo cáo vi phạm\n(CreateReportUseCase)" as UC_Int_CreateReport
+        usecase "UC-INT-06: Chặn người dùng\n(BlockUserUseCase)" as UC_Int_BlockUser
+        usecase "UC-INT-07: Bỏ chặn người dùng\n(UnblockUser)" as UC_Int_UnblockUser
+    }
+
+    package "Module Content Moderation" {
+        usecase "UC-MOD-01: Quét vi phạm tự động" as UC_Mod_AutoScreen
+        usecase "UC-MOD-02: Xử lý báo cáo & kháng cáo" as UC_Mod_ResolveReport
+        usecase "UC-MOD-03: Khóa / Mở khóa nội dung" as UC_Mod_LockVideo
+    }
+
+    package "Module Storage Admin & Transcoding" {
+        usecase "UC-ADM-01: Quản trị Storage Nodes\n(StorageNodeAdminPort)" as UC_Adm_StorageNodes
+        usecase "UC-ADM-02: Cập nhật trạng thái Node\n(StorageNodeAdminPort)" as UC_Adm_NodeStatus
+        usecase "UC-ADM-03: Giám sát dung lượng & tải\n(StorageNodeAdminPort)" as UC_Adm_NodeMonitor
+        usecase "UC-TRC-01: Nhận job & phân tích media\n(VideoTranscodeContract)" as UC_Trc_ReceiveJob
+        usecase "UC-TRC-02: Chuyển mã HLS đa biến thể\n(144p - 2K 60fps)" as UC_Trc_ProcessHLS
+        usecase "UC-TRC-03: Cập nhật trạng thái video & phân phối" as UC_Trc_UpdateStatus
+    }
+}
+
+' Guest Associations
+Guest --> UC_Auth_Register
+Guest --> UC_Auth_Login
+Guest --> UC_Auth_Forgot
+Guest --> UC_Chan_View
+Guest --> UC_Vid_Watch
+Guest --> UC_Int_ViewComments
+
+' User Associations
+User --> UC_Auth_UpdatePass
+User --> UC_User_Update
+User --> UC_User_Get
+User --> UC_Chan_Follow
+User --> UC_Chan_Unfollow
+User --> UC_Vid_Like
+User --> UC_Vid_ReactStatus
+User --> UC_Vid_CreatePlaylist
+User --> UC_Vid_ManagePlaylist
+User --> UC_Vid_WatchPlaylist
+User --> UC_Vid_History
+User --> UC_Int_CreateComment
+User --> UC_Int_UpdateComment
+User --> UC_Int_DeleteComment : "xóa comment của mình"
+User --> UC_Int_CreateReport
+User --> UC_Int_BlockUser
+User --> UC_Int_UnblockUser
+
+' Creator Associations
+Creator --> UC_Chan_Manage
+Creator --> UC_Vid_Upload
+Creator --> UC_Vid_Update
+Creator --> UC_Vid_Delete
+Creator --> UC_Int_DeleteComment : "xóa mọi comment dưới video kênh"
+
+' Staff Associations
+Staff --> UC_Mod_ResolveReport
+Staff --> UC_Mod_LockVideo
+Staff --> UC_Int_DeleteComment : "xóa comment vi phạm toàn hệ thống"
+
+' Admin Associations
+Admin --> UC_Adm_StorageNodes
+Admin --> UC_Adm_NodeStatus
+Admin --> UC_Adm_NodeMonitor
+
+' System Worker Associations
+Worker --> UC_Trc_ReceiveJob
+Worker --> UC_Trc_ProcessHLS
+Worker --> UC_Trc_UpdateStatus
+
+' Secondary System Associations
+UC_Auth_Forgot ..> Mail : <<send>>
+UC_Trc_ProcessHLS ..> Storage : <<store HLS>>
+UC_Adm_NodeMonitor ..> Storage : <<probe>>
+
+' Use Case Relationships (Include / Extend)
+UC_Vid_Watch ..> Sub_CheckPrivacy : <<include>>
+UC_Vid_Watch ..> Sub_LogView : <<include>>
+UC_Vid_WatchPlaylist ..> UC_Vid_Watch : <<include>>
+UC_Vid_Upload ..> UC_Trc_ReceiveJob : <<trigger event>>
+
+UC_Vid_Share ..> UC_Vid_Watch : <<extend>>
+UC_Int_CreateReport ..> UC_Vid_Watch : <<extend>>
+UC_Int_CreateReport ..> UC_Int_ViewComments : <<extend>>
+
+UC_Mod_AutoScreen ..> UC_Vid_Upload : <<trigger>>
+UC_Mod_AutoScreen ..> UC_Mod_LockVideo : <<trigger flag>>
+
+@enduml

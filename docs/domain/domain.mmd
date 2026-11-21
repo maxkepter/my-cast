@@ -1,0 +1,258 @@
+classDiagram-v2
+
+  namespace Account {
+    class User {
+      userId: string
+      username: string
+      profile: UserProfile
+      role: Role
+      email: string
+      isActive: boolean
+      +updateRole(newRole: Role): void
+      +updateEmail(newEmail: string): void
+    }
+
+    class UserProfile{
+      <<ValueObject>>
+      displayName: string
+      avatar?: storageKey
+      +updateDisplayName(newDisplayName: string): void
+      +updateAvatar(newAvatar: storageKey): void
+    }
+
+    class Role{
+      <<Enum>>
+      USER
+      MODERATOR
+      ADMIN
+    }
+  }
+
+  User --> Role : has
+  User "1" *-- "1" UserProfile : has
+
+  namespace Auth {
+    class RefreshToken {
+      token: string
+      userId: string
+      isRevoked: boolean
+      revokedAt?: DateTime
+      expiresAt: DateTime
+      createdAt: DateTime
+      +revoke(): void
+      +isExpired(): boolean
+    }
+  }
+
+  RefreshToken "0..*" --> "1" User : belongs to
+
+  namespace VideoContent {
+    class Video {
+      videoId: string
+      userId: string
+      title: string
+      description: string
+      thumbnail: storageKey
+      videoFile: storageKey
+      viewCount: number
+      videoConfig: VideoConfig
+      +updateTitle(newTitle: string): void
+      +updateDescription(newDescription: string): void
+      +updateThumbnail(newThumbnail: storageKey): void
+      +getVideoCount(): number
+    }
+
+    class Playlist {
+      playlistId: string
+      userId: string
+      playlistName: string
+      playlistDescription: string
+      videoIds: string[]
+    }
+
+    class VideoConfig {
+      <<ValueObject>>
+      visibility: VideoVisibility
+      allowComments: boolean
+      scheduledPublishTime?: DateTime
+    }
+
+    class VideoVisibility{
+      <<Enum>>
+      PUBLIC
+      PRIVATE
+      UNLISTED
+      SCHEDULED
+    }
+
+    class WatchHistory {
+      historyId: string
+      userId: string
+      videoId: string
+      watchedSeconds: number
+      watchedAt: DateTime
+    }
+
+  }
+
+  User "1" --> "0..*" Video : owns
+  User "1" --> "0..*" Playlist : creates
+  Playlist "0..*" o-- "0..*" Video : contains
+  Video "1" *-- "1" VideoConfig : has
+  User "1" *-- "0..*" WatchHistory : maintains
+  WatchHistory "0..*" --> "1" Video : references
+
+
+  namespace Social {
+    class UserFollow {
+      followerId: string
+      followingId: string
+      createdAt: DateTime
+    }
+
+    class UserBlock {
+      blockerId: string
+      blockedId: string
+      createdAt: DateTime
+    }
+
+    class VideoLike {
+      videoLikeId: string
+      videoId: string
+      userId: string
+      createdAt: DateTime
+    }
+
+    class Comment {
+      commentId: string
+      userId: string
+      videoId: string
+      parentCommentId?: string
+      content: string
+      likeCount: number
+      createdAt: DateTime
+      updatedAt?: DateTime
+    }
+
+    class CommentLike {
+      commentLikeId: string
+      commentId: string
+      userId: string
+      createdAt: DateTime
+    }
+  }
+
+  User "1" --> "0..*" UserFollow : following
+  User "1" --> "0..*" UserFollow : follower
+  User "1" --> "0..*" UserBlock : blocker
+  User "1" --> "0..*" UserBlock : blocked
+
+  User "1" --> "0..*" VideoLike : reacts
+  Video "1" *-- "0..*" VideoLike : receives
+
+  User "1" --> "0..*" Comment : authors
+  Video "1" *-- "0..*" Comment : contains
+  User "1" --> "0..*" CommentLike : reacts
+  Comment "1" *-- "0..*" CommentLike : receives
+
+  namespace Moderation {
+    class Report {
+      <<abstract>>
+      reportId: string
+      reporterId: string
+      reason: ReportReason
+      notes?: string
+      status: ReportStatus
+      createdAt: DateTime
+      resolvedAt?: DateTime
+    }
+
+    class VideoReport {
+      videoId: string
+    }
+
+    class CommentReport {
+      commentId: string
+    }
+
+    class ReportReason {
+      <<Enum>>
+      SPAM
+      HARASSMENT
+      HATE_SPEECH
+      VIOLENCE
+      COPYRIGHT
+      OTHER
+    }
+
+    class ReportStatus {
+      <<Enum>>
+      PENDING
+      RESOLVED
+      REJECTED
+    }
+
+    class Appeal {
+      appealId: string
+      reportId: string
+      userId: string
+      reason: string
+      status: AppealStatus
+      createdAt: DateTime
+      resolvedAt?: DateTime
+    }
+
+    class AppealStatus {
+      <<Enum>>
+      PENDING
+      APPROVED
+      REJECTED
+    }
+  }
+
+  Report <|-- VideoReport : extends
+  Report <|-- CommentReport : extends
+
+  User "1" --> "0..*" Report : submits
+  VideoReport "0..*" --> "1" Video : targets
+  CommentReport "0..*" --> "1" Comment : targets
+
+  Report "1" *-- "0..*" Appeal : has
+  User "1" --> "0..*" Appeal : submits
+
+  namespace Event {
+    class Outbox {
+      eventId: string
+      eventType: string
+      payload: string
+      status: EventStatus
+      attempts: number
+      createdAt: DateTime
+      processedAt?: DateTime
+      scheduledAt?: DateTime
+    }
+
+    class EventStatus {
+      <<Enum>>
+      PENDING
+      PROCESSED
+      SCHEDULED
+      PROCESSING
+      FAILED
+    }
+  }
+
+  namespace Storage {
+    class StorageObject {
+      storageKey: string
+      originName: string
+      size?: number
+      bucket: string
+      contentType: string
+      etag?: string
+      createdAt: DateTime
+    }
+  }
+
+  User "1" --> "0..1" StorageObject : avatar
+  Video "1" --> "1..*" StorageObject : media files

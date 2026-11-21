@@ -1,0 +1,42 @@
+---
+title: My Cast - DDD Context Map
+---
+
+flowchart LR
+    subgraph core[Core Domain]
+        video((Video Content Context))
+        discovery((Discovery Context))
+        interaction((Interaction Context))
+    end
+
+    
+
+    subgraph supporting[Supporting Domains]
+        account((Account Context))
+        moderation((Moderation Context))
+    end
+
+    subgraph generic[Generic Domains]
+        notification((Notification Context))
+    end
+
+    subgraph infrastructure[Infrastructure Domain]
+        media((Video Storage Service))
+        identity((External Identity Provider))
+    end
+
+    account -->|Customer Supplier: identity data| video
+    account -->|Customer Supplier: user profile| interaction
+    video -->|Published Language: video metadata| discovery
+    interaction -->|Published Language: engagement events| discovery
+    video -->|Open Host Service: moderation request| moderation
+    moderation -->|Customer Supplier: moderation decision| video
+    interaction -->|Open Host Service: notification request| notification
+    video -->|Open Host Service: media storage| media
+    account -->|Anti-Corruption Layer| identity
+
+    classDef context fill:#e8f1ff,stroke:#2563eb,stroke-width:2px,color:#172554;
+    classDef external fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#431407;
+
+    class account,video,interaction,discovery,moderation,notification context;
+    class media,identity external;
