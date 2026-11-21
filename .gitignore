@@ -40,14 +40,17 @@ Thumbs.db
 # TypeScript cache
 *.tsbuildinfo
 
-# Claude agent worktrees
+# Claude agent local config & worktrees
 .claude/worktrees/
+**/.claude/settings.local.json
+**/.claude/worktrees/
 
 .playwright-mcp/
 
 # Graphify knowledge graph outputs
 graphify-out/
 
-# Documentation plans & audits
+# Documentation plans, workflows & audits
 docs/plans/
 docs/audit/
+docs/workflow/
