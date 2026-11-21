@@ -413,23 +413,25 @@ sequenceDiagram
 
 Tất cả các endpoint dưới đây yêu cầu xác thực Bearer JWT của người dùng có quyền `ADMIN`.
 
-| Method | Endpoint | Mô tả | Mã phản hồi |
-|---|---|---|---|
-| `GET` | `/admin/storage-nodes` | Lấy danh sách nodes. Hỗ trợ query: `?status=healthy` hoặc `?status=unhealthy` | `200 OK` |
-| `POST` | `/admin/storage-nodes` | Thêm nút lưu trữ mới. Tự động probe bucket trước khi lưu | `201 Created`, `400`, `409`, `502` |
-| `PATCH` | `/admin/storage-nodes/:id` | Cập nhật cấu hình node (quota, credentials, isActive). Tự động probe nếu đổi thông số kết nối | `200 OK`, `400`, `404`, `502` |
-| `DELETE` | `/admin/storage-nodes/:id` | Xóa node. Chặn xóa nếu còn dữ liệu hoặc object READY | `204 No Content`, `404`, `409` |
-| `POST` | `/admin/storage-nodes/:id/health-check` | Kiểm tra tức thời kết nối thực tế tới bucket của node và cập nhật trạng thái `isHealthy` | `200 OK`, `404` |
+| Method   | Endpoint                                | Mô tả                                                                                         | Mã phản hồi                        |
+| -------- | --------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `GET`    | `/admin/storage-nodes`                  | Lấy danh sách nodes. Hỗ trợ query: `?status=healthy` hoặc `?status=unhealthy`                 | `200 OK`                           |
+| `POST`   | `/admin/storage-nodes`                  | Thêm nút lưu trữ mới. Tự động probe bucket trước khi lưu                                      | `201 Created`, `400`, `409`, `502` |
+| `PATCH`  | `/admin/storage-nodes/:id`              | Cập nhật cấu hình node (quota, credentials, isActive). Tự động probe nếu đổi thông số kết nối | `200 OK`, `400`, `404`, `502`      |
+| `DELETE` | `/admin/storage-nodes/:id`              | Xóa node. Chặn xóa nếu còn dữ liệu hoặc object READY                                          | `204 No Content`, `404`, `409`     |
+| `POST`   | `/admin/storage-nodes/:id/health-check` | Kiểm tra tức thời kết nối thực tế tới bucket của node và cập nhật trạng thái `isHealthy`      | `200 OK`, `404`                    |
 
 ---
 
 ## 5. Hướng dẫn tích hợp cho các Module khác (Integration Guide)
 
 ### 5.1. Import Module
+
 `StorageModule` được khai báo `@Global()`. Trong các feature module hoặc `CoreModule`:
+
 ```typescript
-import { Module } from '@nestjs/common';
-import { StorageModule } from '../core/storage/storage.module';
+import { Module } from "@nestjs/common";
+import { StorageModule } from "../core/storage/storage.module";
 
 @Module({
   imports: [StorageModule],
@@ -438,9 +440,13 @@ export class MediaModule {}
 ```
 
 ### 5.2. Sử dụng StorageContract trực tiếp trong Service
+
 ```typescript
-import { Inject, Injectable } from '@nestjs/common';
-import { STORAGE_CONTRACT, StorageContract } from '../core/storage/contracts/storage.contract';
+import { Inject, Injectable } from "@nestjs/common";
+import {
+  STORAGE_CONTRACT,
+  StorageContract,
+} from "../core/storage/contracts/storage.contract";
 
 @Injectable()
 export class VideoMediaService {
@@ -457,18 +463,24 @@ export class VideoMediaService {
 ```
 
 ### 5.3. Sử dụng StorageInterceptor cho Upload Controller
-```typescript
-import { Controller, Post, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { StorageInterceptor } from '../core/storage/infrastructure/interceptors/storage.interceptor';
-import { StorageUpload } from '../core/storage/infrastructure/decorators/storage-upload.decorator';
-import { PresignedDowloadRes } from '../core/storage/dtos/res.dto';
 
-@Controller('videos')
+```typescript
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { StorageInterceptor } from "../core/storage/infrastructure/interceptors/storage.interceptor";
+import { StorageUpload } from "../core/storage/infrastructure/decorators/storage-upload.decorator";
+import { PresignedDowloadRes } from "../core/storage/dtos/res.dto";
+
+@Controller("videos")
 export class VideoUploadController {
-  @Post('avatar')
-  @UseInterceptors(FileInterceptor('file'), StorageInterceptor)
-  @StorageUpload([{ field: 'file', path: 'avatars' }])
+  @Post("avatar")
+  @UseInterceptors(FileInterceptor("file"), StorageInterceptor)
+  @StorageUpload([{ field: "file", path: "avatars" }])
   uploadAvatar(@UploadedFile() file: PresignedDowloadRes) {
     return {
       storageId: file.storageId,
@@ -479,10 +491,11 @@ export class VideoUploadController {
 ```
 
 ### 5.4. Kích hoạt xóa tệp qua Domain Event
+
 ```typescript
-import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DeleteStorageEvent } from '../core/storage/domain/events/delete-storage.event';
+import { Injectable } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { DeleteStorageEvent } from "../core/storage/domain/events/delete-storage.event";
 
 @Injectable()
 export class VideoLifecycleService {
@@ -499,9 +512,13 @@ export class VideoLifecycleService {
 ```
 
 ### 5.5. Viết Unit/Integration Test với MockStorageContract
+
 ```typescript
-import { Test, TestingModule } from '@nestjs/testing';
-import { STORAGE_CONTRACT, MockStorageContract } from '../core/storage/contracts/storage.contract';
+import { Test, TestingModule } from "@nestjs/testing";
+import {
+  STORAGE_CONTRACT,
+  MockStorageContract,
+} from "../core/storage/contracts/storage.contract";
 
 const moduleRef: TestingModule = await Test.createTestingModule({
   providers: [
