@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam usecase {
+    BackgroundColor #F8F9FA
+    BorderColor #2D2D2D
+    ArrowColor #2D2D2D
+}
+
+actor "Admin" as Admin
+actor "Transcoder Worker" as Worker <<System>>
+actor "Storage Cluster" as Storage <<Secondary>>
+
+rectangle "Transcoder & Storage Administration Subsystem" {
+    usecase "UC-ADM-01: Quản trị Storage Nodes\n(StorageNodeAdminPort)" as UC_Adm_StorageNodes
+    usecase "UC-ADM-02: Cập nhật trạng thái Node\n(StorageNodeAdminPort)" as UC_Adm_NodeStatus
+    usecase "UC-ADM-03: Giám sát dung lượng & tải\n(StorageNodeAdminPort)" as UC_Adm_NodeMonitor
+
+    usecase "UC-TRC-01: Nhận job & phân tích media\n(VideoTranscodeContract)" as UC_Trc_ReceiveJob
+    usecase "UC-TRC-02: Chuyển mã HLS đa biến thể\n(144p - 2K 60fps)" as UC_Trc_ProcessHLS
+    usecase "UC-TRC-03: Cập nhật trạng thái video & phân phối" as UC_Trc_UpdateStatus
+}
+
+Admin --> UC_Adm_StorageNodes
+Admin --> UC_Adm_NodeStatus
+Admin --> UC_Adm_NodeMonitor
+
+Worker --> UC_Trc_ReceiveJob
+Worker --> UC_Trc_ProcessHLS
+Worker --> UC_Trc_UpdateStatus
+
+UC_Trc_ReceiveJob ..> UC_Trc_ProcessHLS : <<include>>
+UC_Trc_ProcessHLS ..> UC_Trc_UpdateStatus : <<include>>
+UC_Trc_ProcessHLS ..> Storage : <<upload m3u8 & ts>>
+UC_Adm_NodeMonitor ..> Storage : <<health probe>>
+
+@enduml

@@ -1,0 +1,30 @@
+sequenceDiagram 
+    actor creator as Creator
+    participant Frontend as Frontend
+    participant VideoModule as Video Module
+    participant StorageModule as Storage Module
+    participant S3Storage as S3 Storage
+    participant QueueModule as Queue Module
+    participant EventModule as Event Module
+
+    creator->>Frontend: Upload video
+    Frontend->>+VideoModule: Post /videos/upload 
+    
+    alt File size > 100mb
+        VideoModule-->>-Frontend: 413 Payload Too Large
+        Frontend-->>creator: Video file too large 
+    else File type not supported
+        activate VideoModule
+        VideoModule-->>-Frontend: 415 Unsupported Media Type
+        Frontend-->>creator: Unsupported video format
+    else File size <= 100mb and file type supported
+        activate VideoModule
+        VideoModule->>+StorageModule: getSignedUrl(videokey)
+        StorageModule->>+S3Storage: Generate presigned PUT URL
+        S3Storage-->>-StorageModule: Return signed URL
+        StorageModule-->>-VideoModule: Return signed URL
+        VideoModule-->>-Frontend: Return signed URL
+        Frontend->>+S3Storage: Upload video to signed URL
+        S3Storage-->>-Frontend: 200 OK
+        Frontend-->>creator: Upload successful
+    end
