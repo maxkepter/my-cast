@@ -1,23 +1,23 @@
 # Project Guidelines
 
-## Tổng quan dự án (Project Context)
-- **Tên dự án**: MyCast
-- **Mục tiêu**: Nền tảng phát trực tuyến, chia sẻ video và podcast đa phương tiện (Video streaming, casting, audio/video transcoding & delivery).
-- **Cấu trúc Monorepo**:
-  - `backend/`: NestJS 11 theo mô hình Clean Architecture & Domain-Driven Design (DDD).
-    - Phân lớp rõ ràng: `domain` (entities, value objects, domain events), `application` (usecases, services, handlers, interfaces), `infra/infrastructure` (controllers, guards, strategies, listeners, adapters), `dtos`.
-    - **Trình tự thiết kế & triển khai chuẩn (6 bước bắt buộc)**:
-      1. **Ranh giới nghiệp vụ & Module**: Phân định ranh giới nghiệp vụ, module độc lập.
-      2. **Business Rules**: Khởi tạo enums (`domain/enums/`) và domain events (`domain/events/`).
-      3. **API & Schema**: Định nghĩa usecase interfaces và DTOs request/response (`dtos/`).
-      4. **Domain Components**: Thiết kế Entities (`domain/entities/`), Value Objects, Domain Services, Repositories interfaces.
-      5. **Usecase Implementation**: Triển khai class Services (`application/services/`) — **ưu tiên gom nhiều interface có chung phụ thuộc và nghiệp vụ vào 1 class service** (tránh phân mảnh 1 class cho 1 interface vụn vặt), và các Event Handlers (`application/handlers/`).
-      6. **Triển khai Infra**: Controllers, Guards, Middlewares, Listeners, Adapters (`infra/`).
-    - **Quy tắc ranh giới & phụ thuộc Module**:
-      - **Giao tiếp liên module**: Các module chỉ biết nhau và phụ thuộc nhau ở các **API và schema** (exported Service contracts, DTOs, Event schemas).
-      - **Module CHỈ ĐƯỢC IMPORT MODULE**: Khi triển khai NestJS module, phần `imports` chỉ được import module khác (`imports: [OtherModule]`). Tuyệt đối cấm import trực tiếp entity, internal service hay file nội bộ của module khác.
-      - **Ma trận phụ thuộc & Contracts chuẩn chỉ**: Planner phải xác định rõ module phụ thuộc vào module nào (upstream) và cung cấp cho module nào (downstream), kèm contract (API, DTO, Event, Mock spec) để các module có thể phát triển và test độc lập.
-      - **Bắt buộc hoàn thiện cấu hình `@Module`**: Khi Planner thiết kế kiến trúc cho từng module (kể cả ở giai đoạn Domain), **bắt buộc phải định nghĩa chi tiết cấu hình `@Module`** (không được để trống placeholder):
+## Project Context
+- **Project Name**: MyCast
+- **Goal**: Multimedia video streaming, podcast sharing, casting, and audio/video transcoding & delivery platform.
+- **Monorepo Structure**:
+  - `backend/`: NestJS 11 following Clean Architecture & Domain-Driven Design (DDD).
+    - Clear layering: `domain` (entities, value objects, domain events), `application` (use cases, services, handlers, interfaces), `infra/infrastructure` (controllers, guards, strategies, listeners, adapters), `dtos`.
+    - **Mandatory 6-Step Design & Implementation Sequence**:
+      1. **Business Boundaries & Modules**: Define bounded contexts and independent modules.
+      2. **Business Rules**: Define enums (`domain/enums/`) and domain events (`domain/events/`).
+      3. **API & Schema**: Define use-case interfaces and request/response DTOs (`dtos/`).
+      4. **Domain Components**: Design Entities (`domain/entities/`), Value Objects, Domain Services, and Repository interfaces.
+      5. **Use-Case Implementation**: Implement Service classes (`application/services/`) — **prefer grouping multiple interfaces sharing dependencies and business context into a single cohesive service class** (avoid fragmenting into trivial one-class-per-interface files) — and Event Handlers (`application/handlers/`).
+      6. **Infrastructure Implementation**: Controllers, Guards, Middlewares, Listeners, and Adapters (`infra/`).
+    - **Module Boundary & Dependency Rules**:
+      - **Cross-Module Communication**: Modules know and depend on each other strictly through **public APIs and schemas** (exported Service contracts, DTOs, Event schemas).
+      - **Modules May ONLY Import Modules**: In NestJS modules, `imports` may only import other modules (`imports: [OtherModule]`). Directly importing entities, internal services, or private files from another module is strictly forbidden.
+      - **Dependency Matrix & Contracts**: Planner must explicitly define upstream dependencies and downstream dependents, complete with contracts (API signatures, DTOs, Events, Mock specs) so modules can be developed and tested independently.
+      - **Complete `@Module` Configuration Required**: When Planner designs each module (even at the Domain stage), it **must specify the complete `@Module` definition** (no empty placeholders):
         ```typescript
         @Module({
           imports: [TypeOrmModule.forFeature([...]), OtherModule],
@@ -26,81 +26,81 @@
           exports: [...],
         })
         ```
-        Planner phải liệt kê rõ từng phần tử trong `imports` (TypeORM entities, upstream modules), `controllers`, `providers` (domain services, usecase services, handlers), và `exports` (contracts, services công khai).
-    - **Quy ước đặt tên Interface (Interface Naming Convention)**:
-      - **Tuyệt đối KHÔNG sử dụng tiền tố `I` ở đầu tên interface** trong toàn bộ dự án (ví dụ: dùng `UserService`, `UploadVideoUseCase`, `VideoQueryContract` thay vì `IUserService`, `IUploadVideoUseCase`, `IVideoQueryContract`). Quy tắc áp dụng cho cả backend và frontend.
-    - **Quy trình điều phối song song & kiểm thử 2 pha**:
-      - **Runner**: Phân phối N module cho N Executor chạy song song độc lập theo contract.
-      - **Auditor Pha 1 (Nội bộ module)**: Kiểm thử cô lập từng module, mock dữ liệu và API từ module khác dựa theo mock spec trong contract.
-      - **Auditor Pha 2 (Tích hợp toàn bộ)**: Sau khi 100% module pass Pha 1, kiểm thử tích hợp thực tế toàn bộ hệ thống (real DI, event routing, full build/test).
-      - **Ranh giới Runner & Xử lý vi phạm**: Runner **chỉ điều phối**. Tuyệt đối cấm Runner làm việc của Planner (tạo/sửa plan), Executor (viết/sửa code), Auditor (chạy test/audit). **Nếu phát hiện vi phạm: lập tức ngắt toàn bộ agents, chạy lại từ đầu, phát lệnh cảnh cáo cho lần chạy kế tiếp**.
-    - Hạ tầng tích hợp: PostgreSQL (TypeORM), Redis (Cache), BullMQ (Queue & background job processing), AWS S3/MinIO (Object storage, presigned URLs), Mailer, Event Emitter / RabbitMQ.
-  - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Tuân thủ bảng màu chuẩn tại `frontend/AGENTS.md` và hợp đồng thiết kế OpenDesign tại `DESIGN.md` (chủ đạo Lime `#9bf73c` và Base Charcoal `#2d2d2d`).
-  - `.agents/skills/open-design`: Tích hợp OpenDesign (open-design.ai) với Antigravity.
-  - `.agents/skills/systemone`: Module đánh giá ngữ nghĩa và định tuyến AI (JEV SystemOne).
+        List every item in `imports` (TypeORM entities, upstream modules), `controllers`, `providers` (domain services, use-case services, handlers), and `exports` (public contracts and services).
+    - **Interface Naming Convention**:
+      - **Never use the `I` prefix on interface names** anywhere in the repository (e.g., use `UserService`, `UploadVideoUseCase`, `VideoQueryContract` instead of `IUserService`, `IUploadVideoUseCase`, `IVideoQueryContract`). Applies to both backend and frontend.
+    - **Parallel Orchestration & Two-Phase Auditing**:
+      - **Runner**: Dispatches N modules to N parallel `executor` subagents working independently against contracts.
+      - **Auditor Phase 1 (Module Isolation)**: Tests each module in isolation, mocking upstream module APIs and data strictly per the contract mock spec.
+      - **Auditor Phase 2 (Full Integration)**: Once 100% of modules pass Phase 1, verifies real system-wide integration (real NestJS DI, event routing, full build/lint/test).
+      - **Runner Boundary & Violation Protocol**: Runner is **coordinator-only**. It must never perform Planner work (creating/editing plans), Executor work (writing/editing code), or Auditor work (running tests/audits). **On any violation: immediately stop all agents, restart the pipeline from scratch, and issue a warning for the next run.**
+    - Integrated Infrastructure: PostgreSQL (TypeORM), Redis (Cache), BullMQ (Queues & background jobs), AWS S3/MinIO (Object storage & presigned URLs), Mailer, Event Emitter / RabbitMQ.
+  - `video-transcoder/`: Standalone NestJS 11 video transcoding microservice (FFmpeg/FFprobe, RabbitMQ, Vitest).
+  - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Follow the color palette in `frontend/AGENTS.md` and the OpenDesign contract in `DESIGN.md` (Primary Lime `#9bf73c`, Base Charcoal `#2d2d2d`).
+  - `.agents/skills/open-design`: OpenDesign (`open-design.ai`) integration with Antigravity.
+  - `.agents/skills/systemone`: Semantic evaluation and AI routing module (JEV SystemOne).
 
 ---
 
-## Yêu cầu đối với các Agent: Tăng cường vận dụng Skill SystemOne
+## Agent Requirement: Active Use of SystemOne Skill
 
-Tất cả các agent (`planner`, `executor`, `auditor`, `runner`, subagents) **bắt buộc chủ động khai thác skill `systemone`** trong mọi tác vụ phân tích, triển khai và kiểm thử:
+All agents (`planner`, `executor`, `auditor`, `runner`, subagents) **must proactively use the `systemone` skill** across analysis, implementation, and verification tasks:
 
-### 1. Phân bổ vai trò ứng dụng SystemOne
+### 1. SystemOne Role Allocation
 - **Planner**:
-  - Dùng SystemOne để đánh giá độ phức tạp (`number:complexity:1,10`), rủi ro kiến trúc (`noun:risk_level:low,medium,high,critical`), phân loại module bị ảnh hưởng (`list:modules:auth,user,video,storage,queue,cache,frontend`) và định tuyến phương án thiết kế (`noun:strategy`).
+  - Evaluate technical complexity (`number:complexity:1,10`), architectural risk (`noun:risk_level:low,medium,high,critical`), affected modules (`list:modules:auth,user,video,storage,queue,cache,frontend`), and design strategy (`noun:strategy`).
 - **Executor**:
-  - Dùng SystemOne cho các bài toán phân loại ngữ nghĩa dữ liệu đầu vào, routing logic, phát hiện edge-cases tiềm ẩn, và hỗ trợ xây dựng tính năng AI-powered primitives trong mã nguồn.
+  - Triage semantic inputs, routing logic, latent edge cases, and AI-powered primitives in source code.
 - **Auditor**:
-  - Dùng SystemOne làm trọng tài đánh giá độc lập: chấm điểm code quality (`number:quality_score:1,10`), đo độ tuân thủ kiến trúc (`number:compliance:1,10`), phân loại mức độ nghiêm trọng của lỗi (`noun:severity:blocker,major,minor,trivial`), và quyết định PASS/FAIL gating (`noul:is_pass`).
+  - Act as an independent quantitative referee: score code quality (`number:quality_score:1,10`), architecture compliance (`number:compliance:1,10`), defect severity (`noun:severity:blocker,major,minor,trivial`), and PASS/FAIL gating (`noul:is_pass`).
 - **Runner**:
-  - Dùng SystemOne phân tích mức độ hội tụ qua các iteration (`number:convergence:1,5`), đánh giá xem lỗi còn lại có khả năng tự giải quyết không (`noul:can_auto_resolve`) để quyết định lặp tiếp hay escalate cho người dùng.
+  - Assess convergence across iterations (`number:convergence:1,5`) and whether remaining errors can be auto-resolved (`noul:can_auto_resolve`) to decide between retrying or escalating to the user.
 
-### 2. Quy chuẩn phản hồi bắt buộc (Reporting Standard)
-Mỗi khi agent kích hoạt và sử dụng `systemone`, **PHẢI** xuất trình đầy đủ 2 phần trong phản hồi:
+### 2. Mandatory Reporting Standard
+Whenever an agent runs `systemone`, it **MUST** include both sections in its output:
 
-1. **Quá trình sử dụng (Evaluation Process)**:
-   - **Input State**: Tóm tắt ngắn gọn chuỗi ngữ cảnh/dữ liệu truyền vào `-s`.
-   - **Thiết kế Questions/Primitives**: Liệt kê các primitives được cấu hình (`noul`, `noun`, `number`, `list`, `string`) và mục đích của từng câu hỏi.
-   - **Lệnh / Code thực thi**: Lệnh CLI `node .agents/skills/systemone/script/systemone-eval.js ...` hoặc đoạn code Node.js đã chạy.
+1. **Evaluation Process**:
+   - **Input State**: Concise summary of the context passed to `-s`.
+   - **Questions / Primitives**: List of configured primitives (`noul`, `noun`, `number`, `list`, `string`) and each question's purpose.
+   - **Executed Command / Code**: Exact CLI command `node .agents/skills/systemone/script/systemone-eval.js ...` or Node.js snippet executed.
 
-2. **Kết quả và Quyết định (Evaluation Results & Decisions)**:
-   - **Bảng kết quả**: Giá trị output, điểm số, xác suất và nhãn phân loại từ SystemOne.
-   - **Quyết định hành động**: Lý giải rõ ràng nhánh logic hoặc hành động tiếp theo được chọn căn cứ vào kết quả định lượng trên.
+2. **Evaluation Results & Decisions**:
+   - **Results Table**: Returned values, scores, probabilities, and classification labels from SystemOne.
+   - **Action Decision**: Clear rationale explaining the next branch or action chosen from the quantitative results.
 
 ---
 
-## Hướng dẫn kỹ thuật SystemOne Evaluation
-Dùng cho phân loại ngữ nghĩa, định tuyến (router) và đánh giá có định kiểu.
+## SystemOne Evaluation Technical Reference
+Used for semantic classification, routing, and typed quantitative evaluation.
 
-- **Skill**: `systemone` (chi tiết: [.agents/skills/systemone/SKILL.md](.agents/skills/systemone/SKILL.md)).
-- **Script**: `.agents/skills/systemone/script/systemone-eval.js` (hoặc `.claude/skills/systemone/script/systemone-eval.js`)
-- **Biến môi trường**: Cấu hình trong file `.env` cục bộ hoặc export từ shell (tuyệt đối không commit `.env` vào git):
-  - `JEV_API_KEY`: API key xác thực (bắt buộc).
-  - `JEV_ENDPOINT_URL`: Endpoint tùy biến (tùy chọn).
-  - `JEV_MODEL`: Model chỉ định (tùy chọn).
+- **Skill**: `systemone` (details: [.agents/skills/systemone/SKILL.md](.agents/skills/systemone/SKILL.md)).
+- **Script**: `.agents/skills/systemone/script/systemone-eval.js`
+- **Environment Variables**: Configured in local `.env` or shell environment (never commit `.env` to git):
+  - `JEV_API_KEY`: Authentication API key (required; `TYPESAFE_API_KEY` also supported).
+  - `JEV_ENDPOINT_URL`: Custom endpoint URL (optional).
+  - `JEV_MODEL`: Target model identifier (optional).
 - **Primitives**:
-  - `noul`: Boolean / xác suất [0..1].
-  - `noun` / `choice`: Chọn 1 option kèm phân phối xác suất.
-  - `string`: Trích xuất chuỗi / định danh.
-  - `number` / `score`: Đo lường thang điểm (`min, max` hoặc ordered levels).
-  - `list`: Chọn nhiều nhãn phù hợp (multi-label).
+  - `noul`: Boolean / probability `[0..1]`.
+  - `noun` / `choice`: Single option selection with probability distribution.
+  - `string`: String / identifier extraction.
+  - `number` / `score`: Quantitative scale (`min, max` or ordered levels).
+  - `list`: Multi-label selection.
 
-### Hướng dẫn sử dụng
+### Usage
 
-#### 1. Thiết lập biến môi trường
-Cấu hình trong file `.env` cục bộ (tự động load, file `.env` đã được gitignore):
+#### 1. Environment Setup
+Configure in a local `.env` file (auto-loaded, gitignored):
 ```env
 JEV_API_KEY=<your-api-key>
 # JEV_ENDPOINT_URL=<endpoint-url>
 # JEV_MODEL=<model-name>
 ```
 
-#### 2. Chạy trực tiếp qua CLI Flags
+#### 2. Run Directly via CLI Flags
 
-**Cú pháp đầy đủ:**
 ```bash
 node .agents/skills/systemone/script/systemone-eval.js \
-  -s "State / Context cần đánh giá" \
+  -s "State / context to evaluate" \
   --noul <question_id> "<instructions>" \
   --noun <question_id> "<instructions>" "<opt1,opt2,opt3>" \
   --string <question_id> "<instructions>" "<opt1,opt2,opt3>" \
