@@ -1,91 +1,83 @@
 ---
 name: systemone
-description: Đánh giá có định kiểu và phân loại ngữ nghĩa qua SystemOne Engine (noul, noun, string, number/score, list) trực tiếp bằng CLI flags hoặc Node.js module mà không cần tạo file JSON.
+description: Run typed semantic evaluation, classification, and quantitative scoring via SystemOne (noul, noun, string, number/score, list) directly via CLI flags or Node.js module without needing JSON payload files.
 ---
 
 # SystemOne Evaluation Skill
 
-Skill hỗ trợ đánh giá trực tiếp qua CLI flags, JavaScript API hoặc JSON input, tự động load file `.env` và hỗ trợ đầy đủ 5 kiểu dữ liệu nguyên tử.
+Evaluate context and artifacts via CLI flags, Node.js API, or JSON/stdin input. Automatically loads local `.env` configuration and supports all 5 typed primitives.
 
-## 1. 5 Primitives Hỗ Trợ Đầy Đủ
+## Environment Configuration
 
-1. **`noul`** (Boolean / Xác suất):
-   - Đánh giá xác suất đúng/sai [0..1].
-2. **`noun` / `choice`** (Phân loại danh mục):
-   - Chọn đúng 1 phương án trong danh sách `options` kèm phân phối xác suất.
-3. **`string`** (Trích xuất chuỗi):
-   - Trích xuất nhãn/chuỗi cụ thể từ danh sách options hoặc state.
-4. **`number` / `score`** (Thang điểm đo lường):
-   - `number`: Đo lường trên thang số (`min, max`).
-   - `score`: Thang điểm dựa trên các level mô tả có thứ tự.
-5. **`list`** (Multi-label):
-   - Chọn nhiều nhãn phù hợp từ danh sách `options` (tự động phân tích đa chiều).
+Configure credentials in your shell environment or a local `.env` file under `.claude/skills/systemone/.env` or `.claude/skills/systemone/script/.env` (never commit `.env`; see `script/.env.example`):
 
----
+- `JEV_API_KEY` or `TYPESAFE_API_KEY` (required): API key for authentication.
+- `JEV_ENDPOINT_URL` (optional): Custom endpoint URL (defaults to `http://localhost:8080/v1/systemone`).
+- `JEV_MODEL` (optional): Target model identifier (defaults to `systemone-1.0`).
 
-## 2. Cách Dùng Trực Tiếp (Không Cần File JSON)
+If no API key is configured, skip SystemOne evaluation and note it as skipped.
 
-Script tại: `.claude/skills/systemone/script/systemone-eval.js` (tự động load `.env`).
+## Supported Primitives
 
-### Cú pháp CLI Flags Đầy Đủ 5 Types:
+1. **`noul`** (Boolean / probability `[0..1]`): Evaluates whether a condition holds.
+2. **`noun` / `choice`** (Single-label classification): Selects one option from `options` with a probability distribution.
+3. **`string`** (String extraction): Extracts a matching label or identifier from candidate options.
+4. **`number` / `score`** (Quantitative scale):
+   - `number`: Numeric scale (`min,max`).
+   - `score`: Ordered descriptive levels.
+5. **`list`** (Multi-label): Selects all applicable labels from `options`.
 
-```bash
-node .claude/skills/systemone/script/systemone-eval.js \
-  -s "Nội dung / Context cần đánh giá" \
-  --noul <id> "<câu hỏi>" \
-  --noun <id> "<câu hỏi>" "<opt1,opt2,opt3>" \
-  --string <id> "<câu hỏi>" "<opt1,opt2,opt3>" \
-  --number <id> "<câu hỏi>" "<min,max>" \
-  --score <id> "<câu hỏi>" "<Level 0,Level 1,Level 2>" \
-  --list <id> "<câu hỏi>" "<tag1,tag2,tag3>"
-```
+## CLI Usage
 
-### Ví dụ Thực Tế:
+Script path: `.claude/skills/systemone/script/systemone-eval.js` (run with `--help` for full usage).
+
+### Explicit Flags
 
 ```bash
 node .claude/skills/systemone/script/systemone-eval.js \
-  -s "Video streaming API gặp lỗi timeout khi upload video 2GB" \
-  --noul is_urgent "Có khẩn cấp không?" \
-  --noun category "Phân loại lỗi" "bug,performance,billing" \
-  --number priority "Mức độ ưu tiên" "1,5" \
-  --list tags "Các bộ phận liên quan" "backend,frontend,storage,devops" \
-  --string target "Module bị ảnh hưởng" "video_upload,user_profile,auth"
+  -s "Video streaming API timed out while uploading a 2GB video" \
+  --noul is_urgent "Is this urgent?" \
+  --noun category "Classify issue type" "bug,performance,billing" \
+  --number priority "Priority level" "1,5" \
+  --list tags "Affected areas" "backend,frontend,storage,devops" \
+  --string target "Affected module" "video_upload,user_profile,auth"
 ```
 
-### Cú pháp Rút Gọn `-q`:
+### Compact `-q` Syntax
 
 ```bash
 node .claude/skills/systemone/script/systemone-eval.js \
-  -s "User report video spam" \
-  -q "is_valid:noul:Report có hợp lệ không?" \
-  -q "action:noun:Hành động:ban=Khóa tài khoản,warn=Cảnh cáo,dismiss=Bỏ qua" \
-  -q "severity:number:Mức độ nghiêm trọng:1,5" \
-  -q "tags:list:Loại vi phạm:spam,harassment,hate_speech"
+  -s "User reported spam video upload" \
+  -q "is_valid:noul:Is the report valid?" \
+  -q "action:noun:Recommended action:ban=Suspend account,warn=Issue warning,dismiss=Dismiss" \
+  -q "severity:number:Severity level:1,5" \
+  -q "tags:list:Violation categories:spam,harassment,hate_speech"
 ```
 
----
-
-## 3. Cách Dùng Dạng Module Node.js
+## Node.js Module Usage
 
 ```javascript
-const { evaluate } = require('./.claude/skills/systemone/script/systemone-eval');
+const { evaluate } = require("./.claude/skills/systemone/script/systemone-eval");
 
 const res = await evaluate({
   state: { text: "Video streaming API" },
   questions: {
-    is_core: { type: "noul", instructions: "Có phải core domain?" },
-    category: { type: "noun", instructions: "Danh mục", options: ["video", "social", "auth"] },
-    priority: { type: "number", instructions: "Độ ưu tiên", min: 1, max: 5 },
-    tags: { type: "list", instructions: "Tags liên quan", options: ["be", "fe", "storage"] }
+    is_core: { type: "noul", instructions: "Is this in the core domain?" },
+    category: { type: "noun", instructions: "Category", options: ["video", "social", "auth"] },
+    priority: { type: "number", instructions: "Priority", min: 1, max: 5 },
+    tags: { type: "list", instructions: "Affected areas", options: ["backend", "frontend", "storage"] }
   }
 });
 ```
 
----
+## JSON File or Stdin Pipe
 
-## 4. Truyền File hoặc Pipe (Tùy chọn)
-
-Vẫn hỗ trợ đọc file JSON hoặc pipe qua stdin nếu có sẵn:
 ```bash
 node .claude/skills/systemone/script/systemone-eval.js payload.json
 ```
+
+## Reporting Standard
+
+Whenever reporting a SystemOne evaluation in agent output, include:
+1. **Evaluation Process**: Input state summary, configured primitives, and executed command/code.
+2. **Results & Decisions**: Returned values/scores/probabilities and the concrete action chosen from them.
