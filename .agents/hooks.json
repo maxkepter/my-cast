@@ -1,0 +1,58 @@
+{
+  "dev-server-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/run-hook.js dev-server-gate",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "pre-commit-quality-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/run-hook.js pre-commit-quality-gate",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "root-doc-hygiene": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|write_to_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/run-hook.js root-doc-hygiene",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "typescript-verification": {
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|replace_file_content|multi_replace_file_content|write_file|write_to_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/run-hook.js typescript-verification",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
