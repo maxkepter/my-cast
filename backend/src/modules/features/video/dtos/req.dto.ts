@@ -4,10 +4,12 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PlaylistVisibility } from '../domain/enums/playlist-visibility.enum';
@@ -105,11 +107,13 @@ export class VideoConfigReq {
   })
   visibility!: VideoVisibility;
 
-  @IsNotEmpty({ message: 'Allow comments is required' })
+  @IsBoolean({ message: 'allowComments must be a boolean' })
   allowComments!: boolean;
 
   @IsOptional()
-  scheduleAt?: Date;
+  @Type(() => Date)
+  @IsDate({ message: 'scheduleAt must be a valid date' })
+  scheduleAt?: Date | null;
 }
 
 export class UploadVideoReq {
@@ -122,6 +126,54 @@ export class UploadVideoReq {
   videoFile: string;
 
   videoConfig: VideoConfigReq;
+}
+
+export class InitiateVideoUploadReq {
+  @IsNotEmpty({ message: 'Video title is required' })
+  @IsString({ message: 'title must be a string' })
+  title!: string;
+
+  @IsOptional()
+  @IsString({ message: 'description must be a string' })
+  description?: string;
+
+  @IsNotEmpty({ message: 'fileName is required' })
+  @IsString({ message: 'fileName must be a string' })
+  fileName!: string;
+
+  @IsNotEmpty({ message: 'contentType is required' })
+  @IsString({ message: 'contentType must be a string' })
+  contentType!: string;
+
+  @Type(() => Number)
+  @IsNumber({}, { message: 'fileSize must be a number' })
+  @Min(1, { message: 'fileSize must be greater than 0' })
+  fileSize!: number;
+
+  @IsOptional()
+  @IsString({ message: 'thumbnailFileName must be a string' })
+  thumbnailFileName?: string;
+
+  @IsOptional()
+  @IsString({ message: 'thumbnailContentType must be a string' })
+  thumbnailContentType?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'thumbnailSize must be a number' })
+  @Min(1, { message: 'thumbnailSize must be greater than 0' })
+  thumbnailSize?: number;
+
+  @IsNotEmpty({ message: 'videoConfig is required' })
+  @ValidateNested()
+  @Type(() => VideoConfigReq)
+  videoConfig!: VideoConfigReq;
+}
+
+export class CompleteVideoUploadReq {
+  @IsNotEmpty({ message: 'Video ID is required' })
+  @IsUUID('4', { message: 'Video ID must be a valid UUID' })
+  videoId!: string;
 }
 
 export class ShareVideoReqDto {

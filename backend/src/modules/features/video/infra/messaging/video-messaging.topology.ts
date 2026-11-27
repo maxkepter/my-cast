@@ -11,6 +11,7 @@ import { VideoSharedEvent } from '../../domain/events/video-shared.event';
 import { VideoUnlikedEvent } from '../../domain/events/video-unliked.event';
 import { VideoUpdatedEvent } from '../../domain/events/video-updated.event';
 import { VideoUploadedEvent } from '../../domain/events/video-uploaded.event';
+import { VideoProcessFailedEvent } from '../../domain/events/video-process-failed.event';
 
 const REDIS_STREAM_VIDEO_EVENTS = [
   VideoUpdatedEvent.EVENT_NAME,
@@ -20,6 +21,7 @@ const REDIS_STREAM_VIDEO_EVENTS = [
   VideoSharedEvent.EVENT_NAME,
   PlaylistCreatedEvent.EVENT_NAME,
   VideoAddedToPlaylistEvent.EVENT_NAME,
+  VideoProcessFailedEvent.EVENT_NAME,
 ] as const;
 
 export const VIDEO_MESSAGING_TOPOLOGY: ModuleTopology = {

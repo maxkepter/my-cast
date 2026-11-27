@@ -43,6 +43,9 @@ export class Video {
   @Column({ type: 'enum', enum: VideoStatus, default: VideoStatus.UPLOADING })
   videoStatus!: VideoStatus;
 
+  @Column({ type: 'text', nullable: true })
+  failureReason?: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
@@ -65,6 +68,16 @@ export class Video {
     this.sharesCount = (this.sharesCount || 0) + 1;
   }
 
+  markUploaded(): void {
+    this.videoStatus = VideoStatus.UPLOADED;
+    this.failureReason = null;
+  }
+
+  markFailed(reason?: string): void {
+    this.videoStatus = VideoStatus.FAILED;
+    this.failureReason = reason ?? null;
+  }
+
   static create(
     videoId: string,
     authorId: string,
@@ -76,6 +89,7 @@ export class Video {
     config: VideoConfig,
     likesCount = 0,
     sharesCount = 0,
+    status: VideoStatus = VideoStatus.UPLOADING,
   ): Video {
     const video = new Video();
     if (videoId) {
@@ -90,6 +104,7 @@ export class Video {
     video.likesCount = likesCount ?? 0;
     video.sharesCount = sharesCount ?? 0;
     video.config = config;
+    video.videoStatus = status;
     return video;
   }
 }

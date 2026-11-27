@@ -1,4 +1,5 @@
 import { VideoVisibility } from '../domain/enums/video-visibility.enum';
+import { VideoStatus } from '../domain/enums/video-status.enum';
 
 export class VideoConfigRes {
   visibility!: VideoVisibility;
@@ -29,6 +30,8 @@ export class VideoRes {
   likesCount?: number;
   sharesCount?: number;
   config!: VideoConfigRes;
+  status?: VideoStatus;
+  failureReason?: string | null;
 
   static of(
     videoId: string,
@@ -41,6 +44,8 @@ export class VideoRes {
     config: VideoConfigRes,
     likesCount = 0,
     sharesCount = 0,
+    status?: VideoStatus,
+    failureReason?: string | null,
   ): VideoRes {
     const res = new VideoRes();
     res.videoId = videoId;
@@ -53,8 +58,87 @@ export class VideoRes {
     res.likesCount = likesCount;
     res.sharesCount = sharesCount;
     res.config = config;
+    if (status !== undefined) {
+      res.status = status;
+    }
+    if (failureReason !== undefined) {
+      res.failureReason = failureReason;
+    }
     return res;
   }
+}
+
+export class InitiateVideoUploadRes {
+  videoId!: string;
+  storageKey!: string;
+  videoKey!: string;
+  uploadUrl!: string;
+  thumbnailKey?: string;
+  thumbnailUploadUrl?: string;
+  status!: VideoStatus;
+  expiresInSeconds?: number;
+
+  static of(props: {
+    videoId: string;
+    storageKey: string;
+    videoKey: string;
+    uploadUrl: string;
+    status: VideoStatus;
+    thumbnailKey?: string;
+    thumbnailUploadUrl?: string;
+    expiresInSeconds?: number;
+  }): InitiateVideoUploadRes {
+    const res = new InitiateVideoUploadRes();
+    res.videoId = props.videoId;
+    res.storageKey = props.storageKey;
+    res.videoKey = props.videoKey;
+    res.uploadUrl = props.uploadUrl;
+    res.status = props.status;
+    res.thumbnailKey = props.thumbnailKey;
+    res.thumbnailUploadUrl = props.thumbnailUploadUrl;
+    res.expiresInSeconds = props.expiresInSeconds;
+    return res;
+  }
+}
+
+export class CompleteVideoUploadRes {
+  videoId!: string;
+  status!: VideoStatus;
+  storageKey!: string;
+  etag?: string;
+  message?: string;
+
+  static of(props: {
+    videoId: string;
+    status: VideoStatus;
+    storageKey: string;
+    etag?: string;
+    message?: string;
+  }): CompleteVideoUploadRes {
+    const res = new CompleteVideoUploadRes();
+    res.videoId = props.videoId;
+    res.status = props.status;
+    res.storageKey = props.storageKey;
+    res.etag = props.etag;
+    res.message = props.message;
+    return res;
+  }
+}
+
+export type VideoStatusSseEventType =
+  | 'status'
+  | 'processing'
+  | 'completed'
+  | 'failed';
+
+export class VideoStatusEventDto {
+  videoId!: string;
+  status!: VideoStatus;
+  event?: VideoStatusSseEventType;
+  message?: string;
+  reason?: string | null;
+  errorCode?: string | null;
+  updatedAt?: string;
 }
 
 export class WatchVideoRes {
