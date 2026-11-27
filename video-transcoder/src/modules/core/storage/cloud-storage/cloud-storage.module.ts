@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ClientModule } from '../../client/client.module';
+import { ClientModule } from '../../../infra/client/client.module';
 import {
   CLOUD_STORAGE_SERVICE,
   STORAGE_CONTRACT,

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   CLIENT_SERVICE,
   ClientService,
-} from '../../../client/application/client-service.interface';
+} from '../../../../infra/client/application/client-service.interface';
 import {
   StorageContract,
   StoragePresignedDownloadResult,

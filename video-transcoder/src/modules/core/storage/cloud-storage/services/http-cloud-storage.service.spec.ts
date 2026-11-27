@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConfigService } from '@nestjs/config';
-import { ClientService } from '../../../client/application/client-service.interface';
+import { ClientService } from '../../../../infra/client/application/client-service.interface';
 import { HttpCloudStorageService } from './http-cloud-storage.service';
 import {
   StorageClientException,
