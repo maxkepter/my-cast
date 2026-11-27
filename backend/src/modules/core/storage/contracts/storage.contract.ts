@@ -16,11 +16,14 @@ export interface StorageUploadResult {
   key: string;
   etag: string;
   originalName?: string;
+  nodeId?: string;
 }
 
 export interface StoragePresignedUrlOptions {
   expiresIn?: number;
   contentType?: string;
+  originalName?: string;
+  contentLength?: number;
 }
 
 export interface StoragePresignedDownloadResult {
@@ -34,6 +37,7 @@ export interface StoragePresignedUploadResult {
   storageId: string;
   key: string;
   url: string;
+  nodeId?: string;
   options?: StoragePresignedUrlOptions;
 }
 
@@ -179,6 +183,7 @@ export const MockStorageContract: StorageContract = {
     storageId,
     key: storageId,
     url: `https://mock-storage.local/upload/${storageId}?expires=${options?.expiresIn ?? 3600}`,
+    nodeId: 'mock-node-1',
     options,
   }),
   getUrlByStorageId: async (
@@ -196,6 +201,7 @@ export const MockStorageContract: StorageContract = {
     storageId: storageKey,
     key: storageKey,
     etag: 'mock-etag-12345',
+    nodeId: 'mock-node-1',
   }),
   getPresignedDowloadUrl: async (
     storageId: string,

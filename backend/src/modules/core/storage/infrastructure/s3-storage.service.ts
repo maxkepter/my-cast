@@ -2,7 +2,14 @@
 https://docs.nestjs.com/providers#services
 */
 
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+  Optional,
+  PayloadTooLargeException,
+} from '@nestjs/common';
 import {
   StorageContract,
   StorageUploadPayload,
@@ -23,6 +30,8 @@ import { Repository } from 'typeorm';
 import { StorageObject } from '../domain/entities/storage.entity';
 import { StorageObjectStatus } from '../domain/enums/storage-object-status.enum';
 import { StoragePoolManagerPort } from '../application/ports/storage-pool-manager.port';
+
+const MAX_PRESIGNED_UPLOAD_BYTES = 104_857_600;
 
 @Injectable()
 export class S3StorageService implements StorageContract {
@@ -74,6 +83,28 @@ export class S3StorageService implements StorageContract {
     return this.getPresignedDownloadUrl(storageId);
   }
 
+  private hasConfiguredStorage(): boolean {
+    return Boolean(this.pool || (this.client && this.bucket));
+  }
+
+  private isS3NotFoundError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    const candidate = error as {
+      name?: string;
+      Code?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    return (
+      candidate.name === 'NotFound' ||
+      candidate.name === 'NoSuchKey' ||
+      candidate.Code === 'NotFound' ||
+      candidate.Code === 'NoSuchKey' ||
+      candidate.$metadata?.httpStatusCode === 404
+    );
+  }
+
   async updateVideoStatus(
     storageKey: string,
     status: StorageObjectStatus,
@@ -85,6 +116,42 @@ export class S3StorageService implements StorageContract {
       throw new NotFoundException(`Storage with ID ${storageKey} not found`);
     }
 
+    if (status === StorageObjectStatus.READY && this.hasConfiguredStorage()) {
+      const node = this.resolveNode(storage.storageNodeId || undefined);
+      let headResult: { ETag?: string; ContentLength?: number };
+      try {
+        headResult = await node.client.send(
+          new HeadObjectCommand({
+            Bucket: node.bucket,
+            Key: storageKey,
+          }),
+        );
+      } catch (error) {
+        if (this.isS3NotFoundError(error)) {
+          throw new NotFoundException(
+            `Uploaded object ${storageKey} not found in storage`,
+          );
+        }
+        throw error;
+      }
+
+      if (
+        headResult?.ContentLength !== undefined &&
+        headResult.ContentLength > MAX_PRESIGNED_UPLOAD_BYTES
+      ) {
+        throw new PayloadTooLargeException(
+          `Uploaded object ${storageKey} exceeds maximum allowed size`,
+        );
+      }
+
+      if (headResult?.ETag) {
+        storage.etag = headResult.ETag.replace(/"/g, '');
+      }
+      if (headResult?.ContentLength !== undefined) {
+        storage.size = String(headResult.ContentLength);
+      }
+    }
+
     storage.status = status;
     const entity = await this.storageRepo.save(storage);
 
@@ -93,6 +160,7 @@ export class S3StorageService implements StorageContract {
       key: entity.storageKey,
       etag: entity.etag ?? '',
       originalName: entity.originName,
+      ...(entity.storageNodeId ? { nodeId: entity.storageNodeId } : {}),
     };
   }
 
@@ -202,7 +270,16 @@ export class S3StorageService implements StorageContract {
     storageId: string,
     options?: StoragePresignedUrlOptions,
   ): Promise<StoragePresignedUploadResult> {
-    const node = this.resolveNode();
+    let node: { client: S3Client; bucket: string; nodeId: string };
+    try {
+      node = this.resolveNode();
+    } catch {
+      throw new HttpException(
+        'No active storage node available to accept upload',
+        HttpStatus.INSUFFICIENT_STORAGE,
+      );
+    }
+
     const command = new PutObjectCommand({
       Bucket: node.bucket,
       Key: storageId,
@@ -213,6 +290,43 @@ export class S3StorageService implements StorageContract {
       expiresIn: options?.expiresIn ?? 3600,
     });
 
-    return { storageId, key: storageId, url, options };
+    const existing = await this.storageRepo.findOne({
+      where: { storageKey: storageId },
+    });
+
+    if (existing) {
+      existing.originName = options?.originalName ?? existing.originName ?? '';
+      existing.bucket = node.bucket;
+      existing.contentType =
+        options?.contentType ??
+        existing.contentType ??
+        'application/octet-stream';
+      if (options?.contentLength !== undefined) {
+        existing.size = String(options.contentLength);
+      }
+      existing.etag = undefined;
+      existing.storageNodeId = node.nodeId || null;
+      existing.status = StorageObjectStatus.PENDING;
+      await this.storageRepo.save(existing);
+    } else {
+      const record = StorageObject.create({
+        storageKey: storageId,
+        originName: options?.originalName,
+        bucket: node.bucket,
+        contentType: options?.contentType,
+        size: options?.contentLength,
+        storageNodeId: node.nodeId || null,
+        status: StorageObjectStatus.PENDING,
+      });
+      await this.storageRepo.save(record);
+    }
+
+    return {
+      storageId,
+      key: storageId,
+      url,
+      ...(node.nodeId ? { nodeId: node.nodeId } : {}),
+      options,
+    };
   }
 }
