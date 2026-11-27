@@ -1,37 +1,37 @@
 # Design Guidelines - Color Palette
 
-## Màu gốc
-- Primary (nhấn): `#9bf73c` (Lime, dùng cho CTA, link, trạng thái active)
-- Base (nền tối): `#2d2d2d` (Xám than, dùng làm nền chính hoặc chữ trên nền sáng)
+## Core Colors
+- Primary (Accent): `#9bf73c` (Lime — used for CTAs, links, active states)
+- Base (Dark Surface): `#2d2d2d` (Charcoal — primary dark surface or text on light backgrounds)
 
-## Thang màu trung tính (dẫn xuất từ #2d2d2d)
-- Neutral 950: `#141414` (Nền sâu nhất, sidebar)
-- Neutral 900: `#1c1c1c` (Nền trang dark mode)
-- Neutral 800: `#2d2d2d` (Card, panel - màu gốc)
-- Neutral 700: `#3d3d3d` (Card hover, input nền)
-- Neutral 600: `#525252` (Đường viền, divider)
-- Neutral 400: `#8a8a8a` (Chữ phụ, placeholder)
-- Neutral 200: `#d4d4d4` (Chữ chính trên nền tối)
-- Neutral 100: `#ececec` (Nền phụ light mode / chữ sáng)
-- Neutral 50: `#f7f7f5` (Nền trang light mode)
+## Neutral Scale (Derived from `#2d2d2d`)
+- Neutral 950: `#141414` (Deepest canvas, sidebar)
+- Neutral 900: `#1c1c1c` (Dark mode page background)
+- Neutral 800: `#2d2d2d` (Cards, panels — base color)
+- Neutral 700: `#3d3d3d` (Card hover, input surface)
+- Neutral 600: `#525252` (Borders, dividers)
+- Neutral 400: `#8a8a8a` (Secondary text, placeholders)
+- Neutral 200: `#d4d4d4` (Primary text on dark surfaces)
+- Neutral 100: `#ececec` (Light mode secondary surface / high-contrast light text)
+- Neutral 50: `#f7f7f5` (Light mode page background)
 
-## Thang màu lime (dẫn xuất từ #9bf73c)
+## Lime Scale (Derived from `#9bf73c`)
 - Lime 50: `#f3ffe0`
 - Lime 200: `#d2fda0`
 - Lime 400: `#b6fa6b`
-- Lime 500: `#9bf73c` (Màu gốc)
+- Lime 500: `#9bf73c` (Primary accent)
 - Lime 600: `#7ad81f`
 - Lime 700: `#5aa616`
 - Lime 900: `#2e5410`
 
-## Màu ngữ nghĩa (Semantic)
+## Semantic Colors
 - Success: `#9bf73c`
 - Warning: `#f7c93c`
 - Error: `#ff5c5c`
 - Info: `#3cc8f7`
-- Accent phụ: `#b48cff`
+- Secondary Accent: `#b48cff`
 
-## Quy tắc áp dụng
-- Dark mode: nền `#1c1c1c` -> card `#2d2d2d` -> chữ `#ececec` -> nhấn `#9bf73c`.
-- Chữ trên nút lime: luôn dùng `#1c1c1c` hoặc `#2d2d2d`, KHÔNG dùng chữ trắng.
-- Tỷ lệ 60-30-10: 60% trung tính, 30% xám phụ, 10% lime.
+## Usage Rules
+- Dark mode hierarchy: canvas `#1c1c1c` -> card `#2d2d2d` -> text `#ececec` -> accent `#9bf73c`.
+- Text on Lime buttons: always use `#1c1c1c` or `#2d2d2d`; NEVER use white text.
+- 60-30-10 color balance: 60% neutral canvas, 30% secondary charcoal surfaces, 10% lime accents.

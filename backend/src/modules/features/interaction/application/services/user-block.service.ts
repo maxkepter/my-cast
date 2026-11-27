@@ -7,17 +7,17 @@ import { BlockUserReqDto } from '../../dtos/req.dto';
 import { BlockStatusResDto } from '../../dtos/res.dto';
 import { BlockUserUseCase } from '../usecases/block-user.usecase';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+} from '../../../../core/messaging';
 
 @Injectable()
 export class UserBlockService implements BlockUserUseCase {
   constructor(
     @InjectRepository(UserBlock)
     private readonly blockRepo: Repository<UserBlock>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
   ) {}
 
   async execute(
@@ -49,7 +49,7 @@ export class UserBlockService implements BlockUserUseCase {
     const block = UserBlock.create(undefined, blockerId, dto.targetUserId);
     await this.blockRepo.save(block);
 
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new UserBlockedEvent(blockerId, dto.targetUserId),
     );
 

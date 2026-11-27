@@ -1,22 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VideoWebhookController } from './video-webhook.controller';
 import { VideoStatus } from '../../domain/enums/video-status.enum';
+import type {
+  OutboxRes,
+  QueueServiceContract,
+} from '../../../../core/messaging';
 
 describe('VideoWebhookController', () => {
   let controller: VideoWebhookController;
   let mockVideoRepo: any;
-  let mockEventBus: any;
+  let mockQueuePublish: ReturnType<typeof vi.fn>;
+  let mockQueueService: QueueServiceContract;
 
   beforeEach(() => {
     mockVideoRepo = {
       findOne: vi.fn(),
       save: vi.fn().mockImplementation((v) => Promise.resolve(v)),
     };
-    mockEventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    mockQueuePublish = vi.fn().mockResolvedValue([
+      { id: 'outbox-1', eventId: 'evt-1', eventType: 'video.upload' } as OutboxRes,
+    ]);
+    mockQueueService = {
+      publish: mockQueuePublish,
+      publishMany: vi.fn().mockResolvedValue([]),
     };
 
-    controller = new VideoWebhookController(mockVideoRepo, mockEventBus);
+    controller = new VideoWebhookController(mockVideoRepo, mockQueueService);
   });
 
   // 1. Direct Payload Success (với nodeId)
@@ -47,7 +56,7 @@ describe('VideoWebhookController', () => {
     expect(res).toEqual({ processed: 1, ignored: 0 });
     expect(video.videoStatus).toBe(VideoStatus.UPLOADED);
     expect(mockVideoRepo.save).toHaveBeenCalledWith(video);
-    expect(mockEventBus.publish).toHaveBeenCalledWith(
+    expect(mockQueuePublish).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'vid-101',
         authorId: 'user-001',
@@ -93,7 +102,7 @@ describe('VideoWebhookController', () => {
 
     expect(res).toEqual({ processed: 1, ignored: 0 });
     expect(video.videoStatus).toBe(VideoStatus.UPLOADED);
-    expect(mockEventBus.publish).toHaveBeenCalledWith(
+    expect(mockQueuePublish).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'vid-102',
         nodeId: 'node-us-01',
@@ -118,7 +127,7 @@ describe('VideoWebhookController', () => {
       status: 'SubscriptionConfirmed',
     });
     expect(mockVideoRepo.findOne).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 4. SNS Malformed JSON (syntax error handling)
@@ -132,7 +141,7 @@ describe('VideoWebhookController', () => {
 
     expect(res).toEqual({ processed: 0, ignored: 0 });
     expect(mockVideoRepo.findOne).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 5. Transcoder Artifacts Filter
@@ -158,7 +167,7 @@ describe('VideoWebhookController', () => {
 
     expect(res).toEqual({ processed: 0, ignored: 3 });
     expect(mockVideoRepo.findOne).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 6. Non-Video Extension Filter
@@ -184,7 +193,7 @@ describe('VideoWebhookController', () => {
 
     expect(res).toEqual({ processed: 0, ignored: 3 });
     expect(mockVideoRepo.findOne).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 7. Non-ObjectCreated Event Filter
@@ -202,7 +211,7 @@ describe('VideoWebhookController', () => {
 
     expect(res).toEqual({ processed: 0, ignored: 1 });
     expect(mockVideoRepo.findOne).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 8. Missing Key in Record
@@ -220,7 +229,7 @@ describe('VideoWebhookController', () => {
 
     expect(res).toEqual({ processed: 0, ignored: 1 });
     expect(mockVideoRepo.findOne).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 9. No Pending Video in DB
@@ -241,7 +250,7 @@ describe('VideoWebhookController', () => {
     expect(res).toEqual({ processed: 0, ignored: 1 });
     expect(mockVideoRepo.findOne).toHaveBeenCalled();
     expect(mockVideoRepo.save).not.toHaveBeenCalled();
-    expect(mockEventBus.publish).not.toHaveBeenCalled();
+    expect(mockQueuePublish).not.toHaveBeenCalled();
   });
 
   // 10. URL Encoded Key Handling
@@ -276,7 +285,7 @@ describe('VideoWebhookController', () => {
         { videoFile: rawKey, videoStatus: VideoStatus.UPLOADING },
       ],
     });
-    expect(mockEventBus.publish).toHaveBeenCalledWith(
+    expect(mockQueuePublish).toHaveBeenCalledWith(
       expect.objectContaining({
         videoId: 'vid-103',
         videoKey: decodedKey,

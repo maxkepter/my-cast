@@ -10,6 +10,7 @@ import {
 } from '../../domain/enums/report.enum';
 import { ContentReportedEvent } from '../../domain/events/content-reported.event';
 import { CreateReportReqDto } from '../../dtos/req.dto';
+import { EventStreamServiceContract } from '../../../../core/messaging';
 
 describe('ContentReportService', () => {
   let service: ContentReportService;
@@ -19,8 +20,9 @@ describe('ContentReportService', () => {
   let commentRepo: {
     findOne: ReturnType<typeof vi.fn>;
   };
-  let eventBus: {
+  let eventStreamService: EventStreamServiceContract & {
     publish: ReturnType<typeof vi.fn>;
+    publishMany: ReturnType<typeof vi.fn>;
   };
   let videoService: {
     getVideoBasicInfo: ReturnType<typeof vi.fn>;
@@ -46,8 +48,10 @@ describe('ContentReportService', () => {
     commentRepo = {
       findOne: vi.fn(),
     };
-    eventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    const mockOutboxRes = [{ id: 'outbox-1', eventId: 'evt-1', eventType: 'test.event' }];
+    eventStreamService = {
+      publish: vi.fn().mockResolvedValue(mockOutboxRes),
+      publishMany: vi.fn().mockResolvedValue(mockOutboxRes),
     };
     videoService = {
       getVideoBasicInfo: vi.fn(),
@@ -57,7 +61,7 @@ describe('ContentReportService', () => {
     service = new ContentReportService(
       reportRepo as any,
       commentRepo as any,
-      eventBus as any,
+      eventStreamService,
       videoService as any,
     );
   });
@@ -81,7 +85,7 @@ describe('ContentReportService', () => {
       );
       expect(videoService.getVideoBasicInfo).toHaveBeenCalledWith(videoId);
       expect(reportRepo.save).not.toHaveBeenCalled();
-      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(eventStreamService.publish).not.toHaveBeenCalled();
     });
 
     it('creates report for video, saves entity, publishes ContentReportedEvent, and returns ReportSubmissionResDto', async () => {
@@ -112,8 +116,8 @@ describe('ContentReportService', () => {
       expect(savedEntity.detail.getValue()).toBe('Violent content');
       expect(savedEntity.status).toBe(ReportStatus.PENDING);
 
-      expect(eventBus.publish).toHaveBeenCalledTimes(1);
-      const publishedEvent = eventBus.publish.mock.calls[0][0];
+      expect(eventStreamService.publish).toHaveBeenCalledTimes(1);
+      const publishedEvent = eventStreamService.publish.mock.calls[0][0];
       expect(publishedEvent).toBeInstanceOf(ContentReportedEvent);
       expect(publishedEvent.reportId).toBe(reportId);
       expect(publishedEvent.targetType).toBe(ReportTargetType.VIDEO);
@@ -150,7 +154,7 @@ describe('ContentReportService', () => {
         where: { commentId },
       });
       expect(reportRepo.save).not.toHaveBeenCalled();
-      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(eventStreamService.publish).not.toHaveBeenCalled();
     });
 
     it('creates report for comment, saves entity, publishes ContentReportedEvent, and returns ReportSubmissionResDto', async () => {
@@ -183,8 +187,8 @@ describe('ContentReportService', () => {
       expect(savedEntity.reason).toBe(ReportReason.HATE_SPEECH);
       expect(savedEntity.detail.getValue()).toBe('Hate speech in comment');
 
-      expect(eventBus.publish).toHaveBeenCalledTimes(1);
-      const publishedEvent = eventBus.publish.mock.calls[0][0];
+      expect(eventStreamService.publish).toHaveBeenCalledTimes(1);
+      const publishedEvent = eventStreamService.publish.mock.calls[0][0];
       expect(publishedEvent).toBeInstanceOf(ContentReportedEvent);
       expect(publishedEvent.targetType).toBe(ReportTargetType.COMMENT);
       expect(publishedEvent.targetId).toBe(commentId);
@@ -215,8 +219,8 @@ describe('ContentReportService', () => {
       const savedEntity = reportRepo.save.mock.calls[0][0];
       expect(savedEntity.reporterId).toBeNull();
 
-      expect(eventBus.publish).toHaveBeenCalledTimes(1);
-      const publishedEvent = eventBus.publish.mock.calls[0][0];
+      expect(eventStreamService.publish).toHaveBeenCalledTimes(1);
+      const publishedEvent = eventStreamService.publish.mock.calls[0][0];
       expect(publishedEvent.reporterId).toBeNull();
       expect(result.reportId).toBe(reportId);
     });
@@ -240,7 +244,7 @@ describe('ContentReportService', () => {
 
       expect(result.reportId).toBe(reportId);
       expect(reportRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalled();
+      expect(eventStreamService.publish).toHaveBeenCalled();
     });
   });
 });

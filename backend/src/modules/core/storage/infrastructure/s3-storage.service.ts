@@ -21,6 +21,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Repository } from 'typeorm';
 import { StorageObject } from '../domain/entities/storage.entity';
+import { StorageObjectStatus } from '../domain/enums/storage-object-status.enum';
 import { StoragePoolManagerPort } from '../application/ports/storage-pool-manager.port';
 
 @Injectable()
@@ -71,6 +72,28 @@ export class S3StorageService implements StorageContract {
   ): Promise<StoragePresignedDownloadResult> {
     await this.resolveStorageNode(storageId);
     return this.getPresignedDownloadUrl(storageId);
+  }
+
+  async updateVideoStatus(
+    storageKey: string,
+    status: StorageObjectStatus,
+  ): Promise<StorageUploadResult> {
+    const storage = await this.storageRepo.findOne({
+      where: { storageKey },
+    });
+    if (!storage) {
+      throw new NotFoundException(`Storage with ID ${storageKey} not found`);
+    }
+
+    storage.status = status;
+    const entity = await this.storageRepo.save(storage);
+
+    return {
+      storageId: entity.storageKey,
+      key: entity.storageKey,
+      etag: entity.etag ?? '',
+      originalName: entity.originName,
+    };
   }
 
   async upload(payload: StorageUploadPayload): Promise<StorageUploadResult> {

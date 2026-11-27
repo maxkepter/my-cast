@@ -7,20 +7,25 @@ function loadEnv() {
     path.join(__dirname, ".env"),
     path.join(__dirname, "..", ".env"),
     path.join(process.cwd(), ".env"),
+    path.join(process.cwd(), ".agents", "skills", "systemone", "script", ".env"),
+    path.join(process.cwd(), ".agents", "skills", "systemone", ".env"),
     path.join(process.cwd(), ".claude", "skills", "systemone", "script", ".env"),
     path.join(process.cwd(), ".claude", "skills", "systemone", ".env"),
   ]);
 
   for (const file of paths) {
     if (!fs.existsSync(file)) continue;
-    const content = fs.readFileSync(file, "utf-8").replace(/^﻿/, "");
+    const content = fs.readFileSync(file, "utf-8").replace(/^\uFEFF/, "");
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
       const idx = trimmed.indexOf("=");
       if (idx < 0) continue;
       const key = trimmed.slice(0, idx).trim();
-      const value = trimmed.slice(idx + 1).trim().replace(/^(['"])(.*)\1$/, "$2");
+      const value = trimmed
+        .slice(idx + 1)
+        .trim()
+        .replace(/^(['"])(.*)\1$/, "$2");
       if (!process.env[key]?.trim()) process.env[key] = value;
     }
   }
@@ -29,7 +34,8 @@ function loadEnv() {
 loadEnv();
 
 function getConfig(model) {
-  let endpoint = process.env.JEV_ENDPOINT_URL || "http://localhost:8080/v1/systemone";
+  let endpoint =
+    process.env.JEV_ENDPOINT_URL || "http://localhost:8080/v1/systemone";
   if (!/^https?:\/\//i.test(endpoint)) endpoint = `http://${endpoint}`;
   return {
     endpoint,
@@ -39,8 +45,8 @@ function getConfig(model) {
 }
 
 /**
- * Adapter layer: Chuẩn hóa 5 kiểu câu hỏi (noul, noun, string, score/number, list)
- * về 3 primitives gốc của JEV Engine (noul, choice, score) và gom lại kết quả.
+ * Adapter layer: normalizes 5 question types (noul, noun, string, score/number, list)
+ * into the 3 base SystemOne primitives (noul, choice, score) and formats answers.
  */
 function prepareQuestions(rawQuestions) {
   let qMap = {};
@@ -128,11 +134,11 @@ function prepareQuestions(rawQuestions) {
         const subId = `${id}__list__${cleanOpt}`;
         outboundQuestions[subId] = {
           type: "noul",
-          instructions: `${q.instructions || q.instruction}. Áp dụng nhãn "${cleanOpt}"?`,
+          instructions: `${q.instructions || q.instruction}. Apply label "${cleanOpt}"?`,
         };
       }
     } else if (type === "string") {
-      // String extraction qua candidate choices
+      // String extraction via candidate choices
       let criteria = q.criteria || {};
       if (Array.isArray(q.options)) {
         criteria = {};
@@ -213,7 +219,9 @@ async function evaluate({ state, questions, model }) {
   loadEnv();
   const config = getConfig(model);
   if (!config.apiKey) {
-    throw new Error("Thiếu biến môi trường JEV_API_KEY hoặc TYPESAFE_API_KEY.");
+    throw new Error(
+      "Missing environment variable JEV_API_KEY or TYPESAFE_API_KEY.",
+    );
   }
 
   const { outboundQuestions, transforms } = prepareQuestions(questions);
@@ -422,7 +430,7 @@ Flags:
     const { state, questions, model } = parseCliArgs(argv);
     if (Object.keys(questions).length === 0) {
       console.error(
-        JSON.stringify({ error: "Không tìm thấy câu hỏi nào qua CLI flags." }),
+        JSON.stringify({ error: "No questions provided via CLI flags." }),
       );
       process.exit(1);
     }
@@ -436,7 +444,7 @@ Flags:
     }
   }
 
-  // Mode 2: File path, JSON string, or Stdin pipe
+  // Mode 2: File path, JSON string, or stdin pipe
   let rawInput = argv[0];
   if (rawInput && fs.existsSync(rawInput)) {
     try {
@@ -452,7 +460,7 @@ Flags:
     console.error(
       JSON.stringify({
         error:
-          "Thiếu input. Dùng CLI flags (--noul, --noun, --string, --score, --number, --list) hoặc truyền JSON/file.",
+          "Missing input. Use CLI flags (--noul, --noun, --string, --score, --number, --list) or provide JSON/file.",
       }),
     );
     process.exit(1);
@@ -464,7 +472,7 @@ Flags:
   } catch (e) {
     console.error(
       JSON.stringify({
-        error: "Input không phải JSON hợp lệ",
+        error: "Input is not valid JSON.",
         details: e.message,
       }),
     );

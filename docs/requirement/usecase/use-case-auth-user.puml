@@ -1,0 +1,37 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam usecase {
+    BackgroundColor #F8F9FA
+    BorderColor #2D2D2D
+    ArrowColor #2D2D2D
+}
+
+actor "Guest" as Guest
+actor "User / Viewer" as User
+actor "Email Service" as Mail <<Secondary>>
+
+Guest <|-- User
+
+rectangle "Auth & User Subsystem" {
+    usecase "UC-AUTH-01: Đăng ký tài khoản\n(RegisterUseCase)" as UC_Auth_Register
+    usecase "UC-AUTH-02: Đăng nhập\n(LoginUseCase)" as UC_Auth_Login
+    usecase "UC-AUTH-03: Quên mật khẩu\n(ForgotPasswordUseCase)" as UC_Auth_Forgot
+    usecase "UC-AUTH-04: Đổi mật khẩu\n(UpdatePasswordUseCase)" as UC_Auth_UpdatePass
+    usecase "UC-USER-01: Cập nhật thông tin cá nhân\n(UpdateUserUseCase)" as UC_User_Update
+    usecase "UC-USER-02: Xem hồ sơ người dùng\n(GetUserUseCase)" as UC_User_Get
+}
+
+Guest --> UC_Auth_Register
+Guest --> UC_Auth_Login
+Guest --> UC_Auth_Forgot
+
+User --> UC_Auth_UpdatePass
+User --> UC_User_Update
+User --> UC_User_Get
+
+UC_Auth_Forgot ..> Mail : <<send reset link>>
+
+@enduml

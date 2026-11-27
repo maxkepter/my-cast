@@ -4,6 +4,7 @@ import { UserBlockService } from './user-block.service';
 import { UserBlock } from '../../domain/entities/user-block.entity';
 import { UserBlockedEvent } from '../../domain/events/user-blocked.event';
 import { BlockUserReqDto } from '../../dtos/req.dto';
+import { EventStreamServiceContract } from '../../../../core/messaging';
 
 describe('UserBlockService', () => {
   let service: UserBlockService;
@@ -11,8 +12,9 @@ describe('UserBlockService', () => {
     findOne: ReturnType<typeof vi.fn>;
     save: ReturnType<typeof vi.fn>;
   };
-  let eventBus: {
+  let eventStreamService: EventStreamServiceContract & {
     publish: ReturnType<typeof vi.fn>;
+    publishMany: ReturnType<typeof vi.fn>;
   };
 
   const blockerId = '11111111-1111-4111-8111-111111111111';
@@ -23,11 +25,13 @@ describe('UserBlockService', () => {
       findOne: vi.fn(),
       save: vi.fn((entity) => Promise.resolve(entity)),
     };
-    eventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    const mockOutboxRes = [{ id: 'outbox-1', eventId: 'evt-1', eventType: 'test.event' }];
+    eventStreamService = {
+      publish: vi.fn().mockResolvedValue(mockOutboxRes),
+      publishMany: vi.fn().mockResolvedValue(mockOutboxRes),
     };
 
-    service = new UserBlockService(blockRepo as any, eventBus as any);
+    service = new UserBlockService(blockRepo as any, eventStreamService);
   });
 
   it('throws BadRequestException when user attempts to block themselves', async () => {
@@ -41,7 +45,7 @@ describe('UserBlockService', () => {
     );
     expect(blockRepo.findOne).not.toHaveBeenCalled();
     expect(blockRepo.save).not.toHaveBeenCalled();
-    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(eventStreamService.publish).not.toHaveBeenCalled();
   });
 
   it('returns idempotent success without saving or publishing when already blocked', async () => {
@@ -58,7 +62,7 @@ describe('UserBlockService', () => {
       },
     });
     expect(blockRepo.save).not.toHaveBeenCalled();
-    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(eventStreamService.publish).not.toHaveBeenCalled();
     expect(result.blockerId).toBe(blockerId);
     expect(result.blockedId).toBe(targetUserId);
     expect(result.isBlocked).toBe(true);
@@ -81,8 +85,8 @@ describe('UserBlockService', () => {
     expect(savedEntity.blockerId).toBe(blockerId);
     expect(savedEntity.blockedId).toBe(targetUserId);
 
-    expect(eventBus.publish).toHaveBeenCalledTimes(1);
-    const publishedEvent = eventBus.publish.mock.calls[0][0];
+    expect(eventStreamService.publish).toHaveBeenCalledTimes(1);
+    const publishedEvent = eventStreamService.publish.mock.calls[0][0];
     expect(publishedEvent).toBeInstanceOf(UserBlockedEvent);
     expect(publishedEvent.blockerId).toBe(blockerId);
     expect(publishedEvent.blockedId).toBe(targetUserId);
@@ -103,6 +107,6 @@ describe('UserBlockService', () => {
 
     expect(result.isBlocked).toBe(true);
     expect(blockRepo.save).toHaveBeenCalled();
-    expect(eventBus.publish).toHaveBeenCalled();
+    expect(eventStreamService.publish).toHaveBeenCalled();
   });
 });

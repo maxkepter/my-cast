@@ -1,0 +1,40 @@
+sequenceDiagram 
+    actor creator as Creator
+    participant Frontend as Frontend
+    participant VideoModule as Video Module
+    participant StorageModule as Storage Module
+    participant QueueModule as Queue Module
+     box rgb(33, 66, 99) "Infrastructure Layer"
+    participant S3Storage as S3 Storage
+    participant Queue as RabbitMQ
+    %% participant Database as Database
+    end
+    
+
+    creator->>Frontend: Upload video
+    Frontend->>+VideoModule: Post /videos/upload 
+    
+    alt File size > 100mb
+        VideoModule-->>-Frontend: 413 Payload Too Large
+        Frontend-->>creator: Video file too large 
+    else File type not supported
+        activate VideoModule
+        VideoModule-->>-Frontend: 415 Unsupported Media Type
+        Frontend-->>creator: Unsupported video format
+    else File size <= 100mb and file type supported
+        activate VideoModule
+        VideoModule->>+StorageModule: getSignedUrl(videokey)
+        StorageModule->>+S3Storage: Generate presigned PUT URL
+        S3Storage-->>-StorageModule: Return signed URL
+        StorageModule-->>-VideoModule: Return signed URL
+        VideoModule-->>-Frontend: Return signed URL
+        Frontend->>+S3Storage: Upload video to signed URL
+        S3Storage-->>-Frontend: 200 OK
+        Frontend->>+VideoModule: Post /videos/completeUpload
+        VideoModule->>+StorageModule: updateVideoStatus(storageKey, status='READY')
+        StorageModule-->>-VideoModule: storageUploadedRes
+        VideoModule-)QueueModule: publish('video.uploaded', videoUploadedEvent)
+        QueueModule-)Queue: publish(exchange, queueName, data)
+        VideoModule->>-Frontend: 200 OK
+        Frontend-->>creator: Upload successful, video processing started
+    end

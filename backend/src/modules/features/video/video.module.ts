@@ -19,7 +19,8 @@ import { VideoWebhookController } from './infra/controllers/video-webhook.contro
 import { OptionalJwtGuard } from './infra/guards/optional-jwt.guard';
 
 import { AuthModule } from '../auth/auth.module';
-import { EventModule } from '../../core/event/event.module';
+import { MessagingModule } from '../../core/messaging';
+import { VIDEO_MESSAGING_TOPOLOGY } from './infra/messaging/video-messaging.topology';
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ import { EventModule } from '../../core/event/event.module';
       VideoShare,
     ]),
     AuthModule,
-    EventModule,
+    MessagingModule.forFeature(VIDEO_MESSAGING_TOPOLOGY),
   ],
   controllers: [
     VideoController,

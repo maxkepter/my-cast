@@ -1,0 +1,65 @@
+sequenceDiagram
+    autonumber
+    actor User as User Browser
+    participant Comp as React Page/Component
+    participant AuthCtx as AuthProvider (Context)
+    participant Client as Axios Instance (api-client)
+    participant Interceptor as Axios Response Interceptor
+    participant Backend as NestJS API (/auth/*)
+    participant Storage as Cookie/LocalStorage
+
+    Note over User,Backend: 1. Đăng nhập (Login Flow)
+    User->>Comp: Nhập username, password -> Submit
+    Comp->>AuthCtx: login({ username, password })
+    AuthCtx->>Client: POST /auth/login
+    Client->>Backend: POST /auth/login
+    Backend-->>Client: 200 OK (AuthRes: accessToken, refreshToken, user)
+    Client-->>AuthCtx: AuthRes
+    AuthCtx->>Storage: Lưu accessToken, refreshToken, user
+    AuthCtx->>AuthCtx: setState({ user, isAuthenticated: true })
+    AuthCtx-->>Comp: Hoàn thành
+    Comp->>User: Redirect tới Dashboard hoặc Return URL
+
+    Note over User,Backend: 2. Đăng ký & Xác thực OTP (Register & Email Verification Flow)
+    User->>Comp: Nhập username, email, password, displayName -> Submit
+    Comp->>AuthCtx: register(data)
+    AuthCtx->>Client: POST /auth/register
+    Client->>Backend: POST /auth/register
+    Backend-->>Client: 200 OK (RegisterPendingRes: message, email)
+    Client-->>AuthCtx: RegisterPendingRes
+    AuthCtx-->>Comp: Redirect sang /verify-email?email=...
+    User->>Comp: Nhập mã OTP 6 số
+    Comp->>AuthCtx: verifyEmail({ email, code })
+    AuthCtx->>Client: POST /auth/verify-email
+    Client->>Backend: POST /auth/verify-email
+    Backend-->>Client: 200 OK (UserRes: userId, username, email, role, profile)
+    Client-->>AuthCtx: UserRes
+    AuthCtx-->>Comp: Thông báo thành công -> Chuyển sang /login
+
+    Note over User,Backend: 3. Xử lý Token Expiry & Race-Condition Refresh Queue
+    Comp->>Client: Request API A (kèm Bearer AccessToken đã hết hạn)
+    Comp->>Client: Request API B (đồng thời gọi API B)
+    Client->>Backend: Request A
+    Backend-->>Interceptor: 401 Unauthorized
+    Note over Interceptor: isRefreshing = false -> Bắt đầu Refresh
+    Interceptor->>Interceptor: isRefreshing = true
+    Client->>Backend: Request B
+    Backend-->>Interceptor: 401 Unauthorized
+    Note over Interceptor: isRefreshing = true -> Push Request B vào failedQueue
+    Interceptor->>Backend: POST /auth/refresh-token ({ refreshToken })
+    alt Refresh thành công
+        Backend-->>Interceptor: 200 OK (AuthRes: accessToken mới, refreshToken mới)
+        Interceptor->>Storage: Cập nhật accessToken, refreshToken mới
+        Interceptor->>AuthCtx: Cập nhật token trong state
+        Interceptor->>Backend: Retry Request A với accessToken mới
+        Backend-->>Client: 200 OK (Dữ liệu Request A)
+        Interceptor->>Backend: Xả failedQueue -> Retry Request B với accessToken mới
+        Backend-->>Client: 200 OK (Dữ liệu Request B)
+        Interceptor->>Interceptor: isRefreshing = false, failedQueue = []
+    else Refresh thất bại (Refresh Token hết hạn / không hợp lệ)
+        Backend-->>Interceptor: 401 Unauthorized
+        Interceptor->>Storage: Xóa accessToken, refreshToken, user
+        Interceptor->>AuthCtx: logout()
+        Interceptor->>Interceptor: Reject tất cả request trong failedQueue
+        Interceptor->>User: Redirect về /login
+    end

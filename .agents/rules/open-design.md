@@ -1,29 +1,28 @@
-# OpenDesign Integration Guidelines for Antigravity
-
-Quy tắc tích hợp và tuân thủ hệ thống thiết kế **OpenDesign** (`open-design.ai` / `DESIGN.md`) trong dự án MyCast.
-
+---
+trigger: always_on
+description: Follow DESIGN.md and OpenDesign contracts as the single source of truth for MyCast frontend UI implementation and review.
 ---
 
-## 1. Nguồn chân lý thiết kế (Single Source of Truth)
-- Toàn bộ thiết kế giao diện (UI/UX), styling component, layout, và tokens màu sắc được quản lý tại tệp [DESIGN.md](file:///d:/SE/project/my-cast/DESIGN.md) theo chuẩn **OpenDesign**.
-- Khi sinh mới hoặc tinh chỉnh bất kỳ component nào trong thư mục `frontend/`, agent (Planner, Executor, Auditor) **BẮT BUỘC** đọc và tuân thủ các tokens định nghĩa trong [DESIGN.md](file:///d:/SE/project/my-cast/DESIGN.md).
+# OpenDesign Integration Guidelines — MyCast
 
----
+Guidelines for following the **OpenDesign** (`open-design.ai` / `DESIGN.md`) design system in MyCast.
 
-## 2. Quy tắc sinh mã UI từ OpenDesign Specs
-- **Màu sắc & Tokens**:
+## 1. Single Source of Truth
+- All UI/UX specifications, component styling, layouts, and color tokens are governed by `DESIGN.md` (alongside `frontend/AGENTS.md`).
+- Before creating or modifying any component under `frontend/`, agents (`planner`, `executor`, `auditor`) **MUST** read and follow the tokens defined in `DESIGN.md`.
+
+## 2. UI Implementation Rules from OpenDesign Specs
+- **Colors & Tokens**:
   - Primary / CTA: `#9bf73c` (Lime).
-  - Base surface: `#2d2d2d`.
-  - Nền trang (Canvas): `#1c1c1c` (Dark mode).
-  - Nút bấm Lime: Bắt buộc dùng text tối màu (`#1c1c1c` hoặc `#2d2d2d`), **tuyệt đối không dùng chữ trắng**.
-  - Tỷ lệ màu: 60% trung tính (`#1c1c1c`, `#141414`), 30% bề mặt phụ (`#2d2d2d`), 10% điểm nhấn (`#9bf73c`).
-- **Iconography**: Sử dụng thư viện icon chính thống (như `lucide-react`), không dùng emoji thay thế icon.
-- **Components**: Ưu tiên xây dựng component tái sử dụng, tương thích Tailwind CSS và đồng nhất với token của OpenDesign.
+  - Base surface: `#2d2d2d` (Charcoal).
+  - Page canvas: `#1c1c1c` (Dark mode).
+  - Lime buttons: always use dark text (`#1c1c1c` or `#2d2d2d`); **never use white text**.
+  - Color balance: 60% neutral canvas (`#1c1c1c`, `#141414`), 30% secondary charcoal surfaces (`#2d2d2d`), 10% lime accents (`#9bf73c`).
+- **Iconography**: Use a standard icon library (such as `lucide-react`); never use raw emoji as UI icons.
+- **Components**: Favor reusable, composable Tailwind CSS components aligned with OpenDesign tokens.
 
----
-
-## 3. Tương tác với OpenDesign Workspace & MCP
-- Khi ứng dụng OpenDesign desktop chạy cục bộ hoặc daemon chạy qua cổng MCP:
-  - Antigravity kết nối qua server MCP `open-design` để truy vấn cấu trúc frame, component hierarchy, và export design specs.
-  - Sử dụng subagent `browser` để kiểm tra trực quan giao diện thực tế trên dev server (localhost:3000) khi cần nghiệm thu UI.
-  - Auditor khi kiểm thử UI phải đối chiếu trực tiếp giữa mã nguồn đã viết và đặc tả trong `DESIGN.md`.
+## 3. OpenDesign Workspace & MCP Verification
+- When the local OpenDesign desktop app or daemon is running:
+  - Query frames, component hierarchies, and design specs via the `open-design` MCP server.
+  - Use the `browser` subagent to visually verify the live app on the local dev server (`localhost:3000`) when reviewing UI work.
+  - `auditor` must verify implemented frontend code directly against `DESIGN.md`.

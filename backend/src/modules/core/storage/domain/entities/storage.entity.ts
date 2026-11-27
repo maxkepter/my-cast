@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   Index,
 } from 'typeorm';
+import { StorageObjectStatus } from '../enums/storage-object-status.enum';
 
 @Entity('storages')
 @Index('IDX_storages_node_status', ['storageNodeId', 'status'])
@@ -33,8 +34,12 @@ export class StorageObject {
   @Column({ type: 'varchar', length: 36, nullable: true })
   storageNodeId!: string | null;
 
-  @Column({ type: 'varchar', length: 50, default: 'READY' })
-  status!: string;
+  @Column({
+    type: 'enum',
+    enum: StorageObjectStatus,
+    default: StorageObjectStatus.READY,
+  })
+  status!: StorageObjectStatus;
 
   get storageId(): string {
     return this.storageKey;
@@ -52,7 +57,7 @@ export class StorageObject {
     size?: number;
     etag?: string;
     storageNodeId?: string | null;
-    status?: string;
+    status?: StorageObjectStatus;
   }): StorageObject {
     const storage = new StorageObject();
     storage.storageKey = props.storageKey;
@@ -62,7 +67,7 @@ export class StorageObject {
     storage.size = props.size === undefined ? undefined : String(props.size);
     storage.etag = props.etag;
     storage.storageNodeId = props.storageNodeId ?? null;
-    storage.status = props.status ?? 'READY';
+    storage.status = props.status ?? StorageObjectStatus.READY;
     return storage;
   }
 }

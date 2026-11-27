@@ -1,0 +1,53 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam usecase {
+    BackgroundColor #F8F9FA
+    BorderColor #2D2D2D
+    ArrowColor #2D2D2D
+}
+
+actor "Guest" as Guest
+actor "User / Viewer" as User
+actor "Creator" as Creator
+actor "Staff" as Staff
+
+Guest <|-- User
+User <|-- Creator
+User <|-- Staff
+
+rectangle "Community, Interaction & Moderation Subsystem" {
+    usecase "UC-INT-01: Xem bình luận\n(ViewCommentsUseCase)" as UC_Int_ViewComments
+    usecase "UC-INT-02: Tạo bình luận\n(CreateCommentUseCase)" as UC_Int_CreateComment
+    usecase "UC-INT-03: Chỉnh sửa bình luận\n(UpdateCommentUseCase)" as UC_Int_UpdateComment
+    usecase "UC-INT-04: Xóa bình luận\n(DeleteCommentUseCase)" as UC_Int_DeleteComment
+    usecase "UC-INT-05: Báo cáo vi phạm\n(CreateReportUseCase)" as UC_Int_CreateReport
+    usecase "UC-INT-06: Chặn người dùng\n(BlockUserUseCase)" as UC_Int_BlockUser
+    usecase "UC-INT-07: Bỏ chặn người dùng\n(UnblockUser)" as UC_Int_UnblockUser
+
+    usecase "UC-MOD-01: Quét vi phạm tự động" as UC_Mod_AutoScreen
+    usecase "UC-MOD-02: Xử lý báo cáo & kháng cáo" as UC_Mod_ResolveReport
+    usecase "UC-MOD-03: Khóa / Mở khóa nội dung" as UC_Mod_LockVideo
+}
+
+Guest --> UC_Int_ViewComments
+
+User --> UC_Int_CreateComment
+User --> UC_Int_UpdateComment
+User --> UC_Int_DeleteComment : "xóa bình luận của mình"
+User --> UC_Int_CreateReport
+User --> UC_Int_BlockUser
+User --> UC_Int_UnblockUser
+
+Creator --> UC_Int_DeleteComment : "xóa mọi bình luận dưới video kênh"
+Staff --> UC_Int_DeleteComment : "xóa mọi bình luận vi phạm hệ thống"
+
+Staff --> UC_Mod_ResolveReport
+Staff --> UC_Mod_LockVideo
+
+UC_Mod_AutoScreen ..> UC_Mod_LockVideo : <<trigger lock>>
+UC_Int_CreateReport ..> UC_Mod_ResolveReport : <<feed report queue>>
+
+@enduml

@@ -9,6 +9,7 @@ dist/
 build/
 out/
 .next/
+.vscode/
 
 # Test & coverage
 coverage/
@@ -40,13 +41,19 @@ Thumbs.db
 # TypeScript cache
 *.tsbuildinfo
 
-# Claude agent worktrees
+# Claude agent local settings & worktrees
 .claude/worktrees/
+**/.claude/worktrees/
+**/.claude/settings.local.json
+
+# Local private agent memory vault
+.ecc/memory/project/
 
 .playwright-mcp/
 
 # Graphify knowledge graph outputs
 graphify-out/
 
-# Documentation plans & audits
+# Documentation plans, workflows & audits
 docs/plans/
+docs/workflow/

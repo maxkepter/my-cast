@@ -21,9 +21,9 @@ import {
   VideoQueryContract,
 } from '../../contracts/video-query.contract';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+} from '../../../../core/messaging';
 
 @Injectable()
 export class VideoService
@@ -32,8 +32,8 @@ export class VideoService
   constructor(
     @InjectRepository(Video)
     private readonly videoRepo: Repository<Video>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
   ) {}
 
   execute(authorId: string, videoId: string, req: UpdateVideoReq): Promise<VideoRes>;
@@ -97,7 +97,7 @@ export class VideoService
     );
 
     const saved = await this.videoRepo.save(video);
-    await this.eventBus.publish(new VideoUpdatedEvent(saved.videoId, authorId));
+    await this.eventStreamService.publish(new VideoUpdatedEvent(saved.videoId, authorId));
 
     return VideoRes.of(
       saved.videoId,
@@ -128,7 +128,7 @@ export class VideoService
     }
 
     await this.videoRepo.remove(video);
-    await this.eventBus.publish(new VideoDeletedEvent(videoId, authorId));
+    await this.eventStreamService.publish(new VideoDeletedEvent(videoId, authorId));
   }
 
   async getVideoBasicInfo(videoId: string): Promise<VideoBasicInfo | null> {

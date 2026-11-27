@@ -20,9 +20,9 @@ import { CreatePlaylistUseCase } from '../usecases/create-playlist.usecase';
 import { AddVideoToPlaylistUseCase } from '../usecases/add-video-to-playlist.usecase';
 import { WatchPlaylistUseCase } from '../usecases/watch-playlist.usecase';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+} from '../../../../core/messaging';
 
 @Injectable()
 export class PlaylistService
@@ -36,8 +36,8 @@ export class PlaylistService
     private readonly playlistRepo: Repository<Playlist>,
     @InjectRepository(Video)
     private readonly videoRepo: Repository<Video>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
   ) {}
 
   execute(
@@ -98,7 +98,7 @@ export class PlaylistService
     );
 
     const saved = await this.playlistRepo.save(playlist);
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new PlaylistCreatedEvent(saved.playlistId, authorId, saved.title),
     );
 
@@ -135,7 +135,7 @@ export class PlaylistService
     playlist.addVideo(req.videoId);
     await this.playlistRepo.save(playlist);
 
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new VideoAddedToPlaylistEvent(playlist.playlistId, req.videoId, authorId),
     );
 

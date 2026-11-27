@@ -1,41 +1,43 @@
 ---
 trigger: always_on
+description: Core MyCast monorepo guidelines covering NestJS DDD/Clean Architecture, module boundaries, interface naming, Next.js design contract, and SystemOne usage.
 ---
 
 # Project Guidelines — MyCast
 
-## Tổng quan dự án (Project Context)
-- **Tên dự án**: MyCast
-- **Mục tiêu**: Nền tảng phát trực tuyến, chia sẻ video và podcast đa phương tiện (Video streaming, casting, audio/video transcoding & delivery).
-- **Cấu trúc Monorepo**:
-  - `backend/`: NestJS 11 theo mô hình Clean Architecture & Domain-Driven Design (DDD).
-    - Phân lớp rõ ràng: `domain` (entities, value objects, domain events), `application` (usecases, services, handlers, interfaces), `infra/infrastructure` (controllers, guards, strategies, listeners, adapters), `dtos`.
-    - **Trình tự thiết kế & triển khai chuẩn (6 bước bắt buộc)**:
-      1. **Ranh giới nghiệp vụ & Module**: Phân định ranh giới nghiệp vụ, module độc lập.
-      2. **Business Rules**: Khởi tạo enums (`domain/enums/`) và domain events (`domain/events/`).
-      3. **API & Schema**: Định nghĩa usecase interfaces và DTOs request/response (`dtos/`).
-      4. **Domain Components**: Thiết kế Entities (`domain/entities/`), Value Objects, Domain Services, Repositories interfaces.
-      5. **Usecase Implementation**: Triển khai class Services (`application/services/`) — ưu tiên gom nhiều interface có chung phụ thuộc và nghiệp vụ vào 1 class service, và các Event Handlers (`application/handlers/`).
-      6. **Triển khai Infra**: Controllers, Guards, Middlewares, Listeners, Adapters (`infra/`).
-    - **Quy tắc ranh giới & phụ thuộc Module**:
-      - **Giao tiếp liên module**: Các module chỉ biết nhau và phụ thuộc nhau ở các **API và schema** (exported Service contracts, DTOs, Event schemas).
-      - **Module CHỈ ĐƯỢC IMPORT MODULE**: Khi triển khai NestJS module, phần `imports` chỉ được import module khác (`imports: [OtherModule]`). Tuyệt đối cấm import trực tiếp entity, internal service hay file nội bộ của module khác.
-      - **Ma trận phụ thuộc & Contracts chuẩn chỉ**: Planner phải xác định rõ module phụ thuộc vào module nào (upstream) và cung cấp cho module nào (downstream), kèm contract (API, DTO, Event, Mock spec) để các module có thể phát triển và test độc lập.
-      - **Bắt buộc hoàn thiện cấu hình `@Module`**: Planner phải định nghĩa rõ từng phần tử trong `imports`, `controllers`, `providers`, `exports`.
-    - **Quy ước đặt tên Interface**:
-      - **Tuyệt đối KHÔNG sử dụng tiền tố `I` ở đầu tên interface** trong toàn bộ dự án.
-    - **Quy trình điều phối song song & kiểm thử 2 pha**:
-      - **Runner**: Phân phối N module cho N Executor chạy song song độc lập theo contract.
-      - **Auditor Pha 1 (Nội bộ module)**: Kiểm thử cô lập từng module, mock dữ liệu và API từ module khác dựa theo mock spec trong contract.
-      - **Auditor Pha 2 (Tích hợp toàn bộ)**: Sau khi 100% module pass Pha 1, kiểm thử tích hợp thực tế toàn bộ hệ thống.
-      - **Ranh giới Runner & Xử lý vi phạm**: Runner **chỉ điều phối**. Tuyệt đối cấm Runner làm việc của Planner, Executor, Auditor.
-  - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Tuân thủ bảng màu chuẩn tại `frontend/AGENTS.md` và hợp đồng thiết kế OpenDesign tại `DESIGN.md` (chủ đạo Lime `#9bf73c` và Base Charcoal `#2d2d2d`).
-  - `.agents/skills/open-design`: Tích hợp OpenDesign (open-design.ai) với Antigravity.
-  - `.agents/skills/systemone`: Module đánh giá ngữ nghĩa và định tuyến AI (JEV SystemOne).
+## Project Context
+- **Project Name**: MyCast
+- **Goal**: Multimedia video streaming, podcast sharing, casting, and audio/video transcoding & delivery platform.
+- **Monorepo Structure**:
+  - `backend/`: NestJS 11 following Clean Architecture & Domain-Driven Design (DDD).
+    - Clear layering: `domain` (entities, value objects, domain events), `application` (use cases, services, handlers, interfaces), `infra/infrastructure` (controllers, guards, strategies, listeners, adapters), `dtos`.
+    - **Mandatory 6-Step Design & Implementation Sequence**:
+      1. **Business Boundaries & Modules**: Define bounded contexts and independent modules.
+      2. **Business Rules**: Define enums (`domain/enums/`) and domain events (`domain/events/`).
+      3. **API & Schema**: Define use-case interfaces and request/response DTOs (`dtos/`).
+      4. **Domain Components**: Design Entities (`domain/entities/`), Value Objects, Domain Services, and Repository interfaces.
+      5. **Use-Case Implementation**: Implement Service classes (`application/services/`) — prefer grouping multiple interfaces sharing dependencies and business context into a single cohesive service class — and Event Handlers (`application/handlers/`).
+      6. **Infrastructure Implementation**: Controllers, Guards, Middlewares, Listeners, and Adapters (`infra/`).
+    - **Module Boundary & Dependency Rules**:
+      - **Cross-Module Communication**: Modules know and depend on each other strictly through **public APIs and schemas** (exported Service contracts, DTOs, Event schemas).
+      - **Modules May ONLY Import Modules**: In NestJS modules, `imports` may only import other modules (`imports: [OtherModule]`). Directly importing entities, internal services, or private files from another module is strictly forbidden.
+      - **Dependency Matrix & Contracts**: Planner must define upstream/downstream dependencies and complete contracts (API, DTO, Event, Mock spec) so modules can be developed and tested independently.
+      - **Complete `@Module` Configuration Required**: Planner must explicitly list every element in `imports`, `controllers`, `providers`, and `exports`.
+    - **Interface Naming Convention**:
+      - **Never use the `I` prefix on interface names** anywhere in the repository.
+    - **Parallel Orchestration & Two-Phase Auditing**:
+      - **Runner**: Dispatches N modules to N parallel `executor` subagents working independently against contracts.
+      - **Auditor Phase 1 (Module Isolation)**: Tests each module in isolation with upstream mocks per contract spec.
+      - **Auditor Phase 2 (Full Integration)**: Once 100% of modules pass Phase 1, verifies real system-wide integration.
+      - **Runner Boundary**: Runner is **coordinator-only**. Never perform Planner, Executor, or Auditor work.
+  - `video-transcoder/`: Standalone NestJS 11 video transcoding microservice.
+  - `frontend/`: Next.js (App Router), React, TypeScript, Tailwind CSS. Follow `frontend/AGENTS.md` and the OpenDesign contract in `DESIGN.md` (Primary Lime `#9bf73c`, Base Charcoal `#2d2d2d`).
+  - `.agents/skills/open-design`: OpenDesign (`open-design.ai`) integration with Antigravity.
+  - `.agents/skills/systemone`: Semantic evaluation and AI routing module (JEV SystemOne).
 
-## Yêu cầu đối với các Agent: Tăng cường vận dụng Skill SystemOne
-Tất cả các agent (`planner`, `executor`, `auditor`, `runner`) chủ động khai thác skill `systemone` trong mọi tác vụ phân tích, triển khai và kiểm thử.
-- Planner: Đánh giá complexity, risk_level, modules, strategy.
-- Executor: Triage semantic data, routing logic, edge-cases.
-- Auditor: Chấm điểm quality_score, compliance, severity, is_pass.
-- Runner: Đánh giá convergence, can_auto_resolve.
+## Agent Requirement: Active Use of SystemOne Skill
+All agents (`planner`, `executor`, `auditor`, `runner`) proactively use `systemone` across analysis, implementation, and verification tasks:
+- **Planner**: Evaluate `complexity`, `risk_level`, `modules`, `strategy`.
+- **Executor**: Triage semantic data, routing logic, and edge cases.
+- **Auditor**: Score `quality_score`, `compliance`, `severity`, `is_pass`.
+- **Runner**: Assess `convergence` and `can_auto_resolve`.

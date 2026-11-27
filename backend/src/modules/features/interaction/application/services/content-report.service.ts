@@ -10,9 +10,9 @@ import { ReportSubmissionResDto } from '../../dtos/res.dto';
 import { CreateReportUseCase } from '../usecases/create-report.usecase';
 import { VideoService } from '../../../video/application/services/video.service';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+} from '../../../../core/messaging';
 
 @Injectable()
 export class ContentReportService implements CreateReportUseCase {
@@ -21,8 +21,8 @@ export class ContentReportService implements CreateReportUseCase {
     private readonly reportRepo: Repository<ContentReport>,
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
     private readonly videoService: VideoService,
   ) {}
 
@@ -62,7 +62,7 @@ export class ContentReportService implements CreateReportUseCase {
 
     const saved = await this.reportRepo.save(report);
 
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new ContentReportedEvent(
         saved.reportId,
         saved.targetType,

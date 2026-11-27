@@ -21,9 +21,9 @@ import { RefreshTokenUseCase } from '../usecases/refresh-token.usecase';
 import { GoogleLoginUseCase } from '../usecases/google-login.usecase';
 import { RefreshTokenService } from './refresh-token.service';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  QUEUE_SERVICE,
+  QueueServiceContract,
+} from '../../../../core/messaging';
 import { UserCreatedEvent } from '../../../user/domain/events/user-created.event';
 
 @Injectable()
@@ -39,8 +39,8 @@ export class AuthService
     private readonly refreshTokenService: RefreshTokenService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly internalEventBus: InternalEventBus,
+    @Inject(QUEUE_SERVICE)
+    private readonly queueService: QueueServiceContract,
   ) {
     super(AuthService.name);
     this.googleClient = new OAuth2Client(
@@ -114,7 +114,7 @@ export class AuthService
       user = this.userRepo.create(user);
       user = await this.userRepo.save(user);
 
-      await this.internalEventBus.publish(
+      await this.queueService.publish(
         new UserCreatedEvent(
           user.userId,
           user.email,

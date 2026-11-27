@@ -15,9 +15,9 @@ import { ToggleVideoLikeUseCase } from '../usecases/toggle-video-like.usecase';
 import { GetVideoReactionStatusUseCase } from '../usecases/get-video-reaction-status.usecase';
 import { ShareVideoUseCase } from '../usecases/share-video.usecase';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+} from '../../../../core/messaging';
 
 @Injectable()
 export class VideoInteractionService
@@ -33,8 +33,8 @@ export class VideoInteractionService
     private readonly reactionRepo: Repository<VideoReaction>,
     @InjectRepository(VideoShare)
     private readonly shareRepo: Repository<VideoShare>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
   ) {}
 
   execute(
@@ -81,7 +81,7 @@ export class VideoInteractionService
       await this.reactionRepo.remove(existingReaction);
       video.decrementLikes();
       await this.videoRepo.save(video);
-      await this.eventBus.publish(new VideoUnlikedEvent(video.videoId, userId));
+      await this.eventStreamService.publish(new VideoUnlikedEvent(video.videoId, userId));
       return VideoLikeResDto.of(video.videoId, false, video.likesCount);
     }
 
@@ -93,7 +93,7 @@ export class VideoInteractionService
     await this.reactionRepo.save(newReaction);
     video.incrementLikes();
     await this.videoRepo.save(video);
-    await this.eventBus.publish(new VideoLikedEvent(video.videoId, userId));
+    await this.eventStreamService.publish(new VideoLikedEvent(video.videoId, userId));
 
     return VideoLikeResDto.of(video.videoId, true, video.likesCount);
   }
@@ -134,7 +134,7 @@ export class VideoInteractionService
     video.incrementShares();
     await this.videoRepo.save(video);
 
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new VideoSharedEvent(video.videoId, userId ?? null, platform),
     );
 

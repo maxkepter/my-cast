@@ -19,9 +19,9 @@ import { CreateCommentUseCase } from '../usecases/create-comment.usecase';
 import { UpdateCommentUseCase } from '../usecases/update-comment.usecase';
 import { DeleteCommentUseCase } from '../usecases/delete-comment.usecase';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+} from '../../../../core/messaging';
 import { VideoService } from '../../../video/application/services/video.service';
 
 @Injectable()
@@ -35,8 +35,8 @@ export class CommentService
   constructor(
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
     private readonly videoService: VideoService,
   ) {}
 
@@ -134,7 +134,7 @@ export class CommentService
     );
     const saved = await this.commentRepo.save(comment);
 
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new CommentCreatedEvent(
         saved.commentId,
         saved.videoId,
@@ -216,7 +216,7 @@ export class CommentService
 
     await this.commentRepo.save(comment);
 
-    await this.eventBus.publish(
+    await this.eventStreamService.publish(
       new CommentDeletedEvent(
         comment.commentId,
         comment.videoId,
