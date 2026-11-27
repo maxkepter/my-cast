@@ -13,6 +13,7 @@ import { VideoStatusStreamService } from './application/services/video-status-st
 import { VideoInteractionService } from './application/services/video-interaction.service';
 import { PlaylistService } from './application/services/playlist.service';
 import { WatchHistoryService } from './application/services/watch-history.service';
+import { VideoProcessCompletedHandler } from './application/handlers/video-process-completed.handler';
 import { VideoProcessFailedHandler } from './application/handlers/video-process-failed.handler';
 
 import { VideoController } from './infra/controllers/video.controller';
@@ -20,6 +21,7 @@ import { VideoInteractionController } from './infra/controllers/video-interactio
 import { PlaylistController } from './infra/controllers/playlist.controller';
 import { WatchHistoryController } from './infra/controllers/watch-history.controller';
 import { VideoWebhookController } from './infra/controllers/video-webhook.controller';
+import { VideoProcessCompletedConsumer } from './infra/listeners/video-process-completed.consumer';
 import { VideoProcessFailedConsumer } from './infra/listeners/video-process-failed.consumer';
 import { OptionalJwtGuard } from './infra/guards/optional-jwt.guard';
 
@@ -55,6 +57,8 @@ import { VIDEO_MESSAGING_TOPOLOGY } from './infra/messaging/video-messaging.topo
     VideoStatusStreamService,
     VideoProcessFailedHandler,
     VideoProcessFailedConsumer,
+    VideoProcessCompletedHandler,
+    VideoProcessCompletedConsumer,
     VideoInteractionService,
     PlaylistService,
     WatchHistoryService,

@@ -7,6 +7,9 @@ import {
 } from 'typeorm';
 import { VideoConfig } from '../value-objects/video-config.vo';
 import { VideoStatus } from '../enums/video-status.enum';
+import { VideoProcessCompletedProps } from '../events/video-process-completed.event';
+
+export type VideoProcessingMetadata = Omit<VideoProcessCompletedProps, 'videoId' | 'authorId' | 'videoKey'> & { processedEventId: string };
 
 @Entity('videos')
 export class Video {
@@ -46,6 +49,9 @@ export class Video {
   @Column({ type: 'text', nullable: true })
   failureReason?: string | null;
 
+  @Column({ type: 'jsonb', nullable: true })
+  processingMetadata?: VideoProcessingMetadata | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
@@ -76,6 +82,15 @@ export class Video {
   markFailed(reason?: string): void {
     this.videoStatus = VideoStatus.FAILED;
     this.failureReason = reason ?? null;
+  }
+
+  markProcessed(metadata: VideoProcessingMetadata): void {
+    this.videoStatus = VideoStatus.PROCESSED;
+    this.failureReason = null;
+    this.processingMetadata = metadata;
+    if (!this.thumbnail?.trim()) {
+      this.thumbnail = metadata.thumbnailKey;
+    }
   }
 
   static create(

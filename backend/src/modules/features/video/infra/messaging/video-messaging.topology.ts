@@ -35,7 +35,13 @@ export const VIDEO_MESSAGING_TOPOLOGY: ModuleTopology = {
   queues: [
     {
       queueName: 'video.transcode.queue',
-      options: { durable: true },
+      options: {
+        durable: true,
+        arguments: {
+          'x-dead-letter-exchange': 'video.transcode.dlx',
+          'x-dead-letter-routing-key': 'video.transcode.dlq',
+        },
+      },
       queueBindings: [
         {
           exchange: 'video.events',

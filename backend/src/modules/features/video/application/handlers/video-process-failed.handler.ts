@@ -39,16 +39,40 @@ export class VideoProcessFailedHandler
       return;
     }
 
-    if (video.videoStatus === VideoStatus.PROCESSED) {
+    if ((event.authorId && event.authorId !== video.authorId) || (event.videoKey && event.videoKey !== video.videoFile)) {
+      this.logger.warn(`Rejected ${VideoProcessFailedEvent.EVENT_NAME} for videoId=${event.videoId}: authorId or videoKey mismatch.`);
+      return;
+    }
+
+    if (video.videoStatus === VideoStatus.PROCESSED || video.videoStatus === VideoStatus.FAILED) {
       this.logger.warn(
-        `Ignoring ${VideoProcessFailedEvent.EVENT_NAME} for already PROCESSED videoId=${event.videoId}.`,
+        `Ignoring ${VideoProcessFailedEvent.EVENT_NAME} for already ${video.videoStatus} videoId=${event.videoId}.`,
       );
       return;
     }
 
     const reason = event.reason?.trim() || 'Video processing failed';
-    video.markFailed(reason);
-    await this.videoRepo.save(video);
+    const result = await this.videoRepo
+      .createQueryBuilder()
+      .update(Video)
+      .set({
+        videoStatus: VideoStatus.FAILED,
+        failureReason: reason,
+      })
+      .where('"videoId" = :videoId', { videoId: event.videoId })
+      .andWhere('"authorId" = :authorId', { authorId: video.authorId })
+      .andWhere('"videoFile" = :videoKey', { videoKey: video.videoFile })
+      .andWhere('"videoStatus" IN (:...allowedStatuses)', {
+        allowedStatuses: [VideoStatus.UPLOADED, VideoStatus.PROCESSING],
+      })
+      .execute();
+
+    if (!result.affected) {
+      this.logger.warn(
+        `Skipped ${VideoProcessFailedEvent.EVENT_NAME} for videoId=${event.videoId}: concurrent update transitioned state.`,
+      );
+      return;
+    }
 
     if (video.videoFile) {
       await this.markStorageFailedGracefully(video.videoId, video.videoFile);

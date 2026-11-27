@@ -24,6 +24,7 @@ describe('VideoProcessFailedHandler & VideoProcessFailedConsumer', () => {
   let videoRepo: {
     findOne: ReturnType<typeof vi.fn>;
     save: ReturnType<typeof vi.fn>;
+    createQueryBuilder: ReturnType<typeof vi.fn>;
   };
   let storageContract: StorageContract;
   let streamService: VideoStatusStreamService;
@@ -46,9 +47,17 @@ describe('VideoProcessFailedHandler & VideoProcessFailedConsumer', () => {
     );
 
   beforeEach(() => {
+    const qb = {
+      update: vi.fn().mockReturnThis(),
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      execute: vi.fn().mockResolvedValue({ affected: 1 }),
+    };
     videoRepo = {
       findOne: vi.fn(),
       save: vi.fn((entity: Video) => Promise.resolve(entity)),
+      createQueryBuilder: vi.fn().mockReturnValue(qb),
     };
 
     storageContract = {
@@ -125,9 +134,8 @@ describe('VideoProcessFailedHandler & VideoProcessFailedConsumer', () => {
         ),
       );
 
-      expect(video.videoStatus).toBe(VideoStatus.FAILED);
-      expect(video.failureReason).toBe('Corrupted video stream');
-      expect(videoRepo.save).toHaveBeenCalledWith(video);
+      expect(videoRepo.createQueryBuilder().set).toHaveBeenCalledWith({ videoStatus: VideoStatus.FAILED, failureReason: 'Corrupted video stream' });
+      expect(videoRepo.save).not.toHaveBeenCalled();
       expect(storageContract.updateVideoStatus).toHaveBeenCalledWith(
         video.videoFile,
         'FAILED',
@@ -158,8 +166,8 @@ describe('VideoProcessFailedHandler & VideoProcessFailedConsumer', () => {
         new VideoProcessFailedEvent(video.videoId, 'FFprobe failed'),
       );
 
-      expect(video.videoStatus).toBe(VideoStatus.FAILED);
-      expect(videoRepo.save).toHaveBeenCalled();
+      expect(videoRepo.createQueryBuilder().execute).toHaveBeenCalled();
+      expect(videoRepo.save).not.toHaveBeenCalled();
       expect(emitStatusSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           videoId: video.videoId,
@@ -167,6 +175,17 @@ describe('VideoProcessFailedHandler & VideoProcessFailedConsumer', () => {
           reason: 'FFprobe failed',
         }),
       );
+    });
+
+    it('skips storage update and SSE when concurrent PROCESSED transition wins race (affected=0)', async () => {
+      const video = makeVideo(VideoStatus.PROCESSING);
+      videoRepo.findOne.mockResolvedValue(video);
+      videoRepo.createQueryBuilder().execute.mockResolvedValueOnce({ affected: 0 });
+
+      await handler.handle(new VideoProcessFailedEvent(video.videoId, 'Late failure'));
+
+      expect(storageContract.updateVideoStatus).not.toHaveBeenCalled();
+      expect(emitStatusSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -199,7 +218,7 @@ describe('VideoProcessFailedHandler & VideoProcessFailedConsumer', () => {
         }),
         handler,
       );
-      expect(video.videoStatus).toBe(VideoStatus.FAILED);
+      expect(videoRepo.createQueryBuilder().execute).toHaveBeenCalled();
     });
 
     it('skips duplicate deliveries when INBOX_SERVICE.executeOnce returns false', async () => {
