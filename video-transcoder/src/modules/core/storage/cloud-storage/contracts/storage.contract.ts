@@ -56,6 +56,7 @@ export interface StorageContract {
     options?: StoragePresignedUrlOptions,
   ): Promise<StoragePresignedUploadResult>;
   getUrlByStorageId(storageId: string): Promise<StoragePresignedDownloadResult>;
+  downloadToFile(storageId: string, destinationPath: string): Promise<string>;
 
   // Backwards compatibility aliases
   getPresignedDowloadUrl(
@@ -114,6 +115,10 @@ export const MockStorageContract: StorageContract = {
     url: `https://mock-storage.local/${storageId}?expires=3600`,
     expiresIn: 3600,
   }),
+  downloadToFile: async (
+    _storageId: string,
+    destinationPath: string,
+  ): Promise<string> => destinationPath,
   getPresignedDowloadUrl: async (
     storageId: string,
     expiresIn = 3600,

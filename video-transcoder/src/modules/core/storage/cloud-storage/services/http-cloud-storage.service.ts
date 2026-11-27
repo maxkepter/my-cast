@@ -1,5 +1,10 @@
+import { createWriteStream } from 'node:fs';
+import { unlink } from 'node:fs/promises';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 import {
   CLIENT_SERVICE,
   ClientService,
@@ -22,6 +27,7 @@ import {
 export class HttpCloudStorageService implements StorageContract {
   private readonly logger = new Logger(HttpCloudStorageService.name);
   private readonly basePath: string;
+  private readonly downloadTimeout: number;
 
   constructor(
     @Inject(CLIENT_SERVICE) private readonly client: ClientService,
@@ -31,6 +37,13 @@ export class HttpCloudStorageService implements StorageContract {
       'BACKEND_STORAGE_PREFIX',
       '/api/v1/storage',
     );
+    const rawTimeout = this.config.get<number | string>(
+      'BACKEND_DOWNLOAD_TIMEOUT',
+      0,
+    );
+    const parsedTimeout = Number(rawTimeout);
+    this.downloadTimeout =
+      Number.isFinite(parsedTimeout) && parsedTimeout >= 0 ? parsedTimeout : 0;
   }
 
   async upload(payload: StorageUploadPayload): Promise<StorageUploadResult> {
@@ -128,6 +141,29 @@ export class HttpCloudStorageService implements StorageContract {
     try {
       return await this.client.get<StoragePresignedDownloadResult>(url);
     } catch (error) {
+      this.handleError(error, storageId);
+    }
+  }
+
+  async downloadToFile(
+    storageId: string,
+    destinationPath: string,
+  ): Promise<string> {
+    const result = await this.getPresignedDownloadUrl(storageId);
+    const url = result?.url;
+    if (!url) {
+      throw new StorageClientException('Presigned download URL is missing');
+    }
+
+    try {
+      const response = await axios.get<Readable>(url, {
+        responseType: 'stream',
+        timeout: this.downloadTimeout,
+      });
+      await pipeline(response.data, createWriteStream(destinationPath));
+      return destinationPath;
+    } catch (error) {
+      await unlink(destinationPath).catch(() => undefined);
       this.handleError(error, storageId);
     }
   }

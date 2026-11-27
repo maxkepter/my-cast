@@ -1,5 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 import { ClientService } from '../../../../infra/client/application/client-service.interface';
 import { HttpCloudStorageService } from './http-cloud-storage.service';
 import {
@@ -7,7 +14,16 @@ import {
   StorageConnectionException,
   StorageNotFoundException,
 } from '../domain/exceptions/storage-client.exception';
-import { StorageUploadPayload } from '../contracts/storage.contract';
+import {
+  MockStorageContract,
+  StorageUploadPayload,
+} from '../contracts/storage.contract';
+
+vi.mock('axios', () => ({
+  default: {
+    get: vi.fn(),
+  },
+}));
 
 describe('HttpCloudStorageService', () => {
   let service: HttpCloudStorageService;
@@ -22,7 +38,11 @@ describe('HttpCloudStorageService', () => {
     get: ReturnType<typeof vi.fn>;
   };
 
+  const mockedAxiosGet = vi.mocked(axios.get);
+
   beforeEach(() => {
+    mockedAxiosGet.mockReset();
+
     mockClient = {
       get: vi.fn(),
       post: vi.fn(),
@@ -327,6 +347,228 @@ describe('HttpCloudStorageService', () => {
       await expect(service.getUrlByStorageId('id-1')).rejects.toThrow(
         StorageConnectionException,
       );
+    });
+  });
+
+  describe('downloadToFile', () => {
+    let tempDir: string;
+
+    beforeEach(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'mycast-cloud-storage-test-'));
+    });
+
+    afterEach(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+      vi.restoreAllMocks();
+    });
+
+    it('should download stream to destination file and resolve destinationPath', async () => {
+      const presignedUrl =
+        'https://storage.local/videos/src.mp4?X-Amz-Signature=secret-token';
+      const destinationPath = join(tempDir, 'source.mp4');
+      const content = Buffer.from('binary-video-payload-12345');
+
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'videos/src.mp4',
+        key: 'videos/src.mp4',
+        url: presignedUrl,
+        expiresIn: 3600,
+      });
+      mockedAxiosGet.mockResolvedValueOnce({
+        data: Readable.from([content]),
+      } as any);
+
+      const resolvedPath = await service.downloadToFile(
+        'videos/src.mp4',
+        destinationPath,
+      );
+
+      expect(resolvedPath).toBe(destinationPath);
+      expect(mockClient.get).toHaveBeenCalledWith(
+        '/api/v1/storage/videos%2Fsrc.mp4/presigned-download',
+        { params: undefined },
+      );
+      expect(mockedAxiosGet).toHaveBeenCalledWith(presignedUrl, {
+        responseType: 'stream',
+        timeout: 0,
+      });
+      const written = await readFile(destinationPath);
+      expect(written.equals(content)).toBe(true);
+    });
+
+    it('should pass configured BACKEND_DOWNLOAD_TIMEOUT to axios.get', async () => {
+      const customConfig = {
+        get: vi.fn((key: string, defaultValue?: any) => {
+          if (key === 'BACKEND_STORAGE_PREFIX') return '/api/v1/storage';
+          if (key === 'BACKEND_DOWNLOAD_TIMEOUT') return '45000';
+          return defaultValue;
+        }),
+      };
+      const customService = new HttpCloudStorageService(
+        mockClient as unknown as ClientService,
+        customConfig as unknown as ConfigService,
+      );
+      const destinationPath = join(tempDir, 'custom-timeout.mp4');
+      const presignedUrl = 'https://storage.local/file.mp4?sig=abc';
+
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'obj-1',
+        key: 'file.mp4',
+        url: presignedUrl,
+      });
+      mockedAxiosGet.mockResolvedValueOnce({
+        data: Readable.from([Buffer.from('ok')]),
+      } as any);
+
+      await customService.downloadToFile('obj-1', destinationPath);
+
+      expect(mockedAxiosGet).toHaveBeenCalledWith(presignedUrl, {
+        responseType: 'stream',
+        timeout: 45000,
+      });
+    });
+
+    it('should throw StorageNotFoundException when presigned download returns 404', async () => {
+      const destinationPath = join(tempDir, 'missing-presigned.mp4');
+      mockClient.get.mockRejectedValueOnce({
+        response: { status: 404, data: { message: 'Not found' } },
+      });
+
+      await expect(
+        service.downloadToFile('missing-id', destinationPath),
+      ).rejects.toThrow(StorageNotFoundException);
+      expect(mockedAxiosGet).not.toHaveBeenCalled();
+      expect(existsSync(destinationPath)).toBe(false);
+    });
+
+    it('should throw StorageNotFoundException when download request returns 404', async () => {
+      const destinationPath = join(tempDir, 'missing-object.mp4');
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'missing-id',
+        key: 'missing.mp4',
+        url: 'https://storage.local/missing.mp4?sig=secret',
+      });
+      mockedAxiosGet.mockRejectedValueOnce({
+        response: { status: 404 },
+        message: 'Request failed with status code 404',
+      });
+
+      await expect(
+        service.downloadToFile('missing-id', destinationPath),
+      ).rejects.toThrow(StorageNotFoundException);
+      expect(existsSync(destinationPath)).toBe(false);
+    });
+
+    it('should throw StorageConnectionException on 5xx or network error', async () => {
+      const destinationPath = join(tempDir, 'server-error.mp4');
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'obj-500',
+        key: 'video.mp4',
+        url: 'https://storage.local/video.mp4?sig=secret',
+      });
+      mockedAxiosGet.mockRejectedValueOnce({
+        response: { status: 503 },
+        message: 'Service Unavailable',
+      });
+
+      await expect(
+        service.downloadToFile('obj-500', destinationPath),
+      ).rejects.toThrow(StorageConnectionException);
+      expect(existsSync(destinationPath)).toBe(false);
+    });
+
+    it('should throw StorageClientException when presigned URL is missing', async () => {
+      const destinationPath = join(tempDir, 'no-url.mp4');
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'obj-1',
+        key: 'video.mp4',
+        url: '',
+      });
+
+      await expect(
+        service.downloadToFile('obj-1', destinationPath),
+      ).rejects.toThrow(StorageClientException);
+      expect(mockedAxiosGet).not.toHaveBeenCalled();
+    });
+
+    it('should delete partial file when stream errors mid-download', async () => {
+      const destinationPath = join(tempDir, 'partial.mp4');
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'obj-stream-err',
+        key: 'video.mp4',
+        url: 'https://storage.local/video.mp4?sig=secret',
+      });
+
+      let pushed = false;
+      const failingStream = new Readable({
+        read() {
+          if (!pushed) {
+            pushed = true;
+            this.push(Buffer.from('partial-chunk-before-failure'));
+            setTimeout(() => {
+              this.destroy(new Error('stream aborted mid-transfer'));
+            }, 10);
+          }
+        },
+      });
+      mockedAxiosGet.mockResolvedValueOnce({
+        data: failingStream,
+      } as any);
+
+      await expect(
+        service.downloadToFile('obj-stream-err', destinationPath),
+      ).rejects.toThrow(StorageConnectionException);
+      expect(existsSync(destinationPath)).toBe(false);
+    });
+
+    it('should never log the presigned URL on success or failure', async () => {
+      const secretUrl =
+        'https://storage.local/private.mp4?X-Amz-Credential=AKIATEST&X-Amz-Signature=super-secret-sig';
+      const logSpies = [
+        vi.spyOn(Logger.prototype, 'log').mockImplementation(() => {}),
+        vi.spyOn(Logger.prototype, 'debug').mockImplementation(() => {}),
+        vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {}),
+        vi.spyOn(Logger.prototype, 'error').mockImplementation(() => {}),
+        vi.spyOn(Logger.prototype, 'verbose').mockImplementation(() => {}),
+        vi.spyOn(console, 'log').mockImplementation(() => {}),
+        vi.spyOn(console, 'warn').mockImplementation(() => {}),
+        vi.spyOn(console, 'error').mockImplementation(() => {}),
+      ];
+
+      // Success path
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'obj-secret',
+        key: 'private.mp4',
+        url: secretUrl,
+      });
+      mockedAxiosGet.mockResolvedValueOnce({
+        data: Readable.from([Buffer.from('secret-video')]),
+      } as any);
+      await service.downloadToFile('obj-secret', join(tempDir, 'ok.mp4'));
+
+      // Failure path
+      mockClient.get.mockResolvedValueOnce({
+        storageId: 'obj-secret',
+        key: 'private.mp4',
+        url: secretUrl,
+      });
+      mockedAxiosGet.mockRejectedValueOnce(new Error('Network Error'));
+      await expect(
+        service.downloadToFile('obj-secret', join(tempDir, 'fail.mp4')),
+      ).rejects.toThrow(StorageConnectionException);
+
+      for (const spy of logSpies) {
+        const serializedCalls = JSON.stringify(spy.mock.calls);
+        expect(serializedCalls).not.toContain(secretUrl);
+        expect(serializedCalls).not.toContain('super-secret-sig');
+      }
+    });
+
+    it('MockStorageContract.downloadToFile should resolve destinationPath', async () => {
+      const dest = '/tmp/mock-dest.mp4';
+      await expect(
+        MockStorageContract.downloadToFile('any-id', dest),
+      ).resolves.toBe(dest);
     });
   });
 });
