@@ -50,17 +50,17 @@ services:
       - minio_data:/data
 
   minio-init:
-    image: minio/mc:latest
+    image: bitnamilegacy/minio-client:latest
     container_name: mycast_minio_init
     depends_on:
       - minio
     entrypoint: >
       /bin/sh -c "
-      until /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin; do
+      until mc alias set myminio http://minio:9000 minioadmin minioadmin; do
         sleep 1
       done;
-      /usr/bin/mc mb myminio/my-cast --ignore-existing;
-      /usr/bin/mc event add myminio/my-cast arn:minio:sqs::primary:webhook --event put --ignore-existing;
+      mc mb myminio/my-cast --ignore-existing;
+      mc event add myminio/my-cast arn:minio:sqs::primary:webhook --event put --ignore-existing;
       exit 0;
       "
 
