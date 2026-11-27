@@ -14,9 +14,9 @@ import { Video } from '../../domain/entities/video.entity';
 import { VideoStatus } from '../../domain/enums/video-status.enum';
 import { VideoUploadedEvent } from '../../domain/events/video-uploaded.event';
 import {
-  INTERNAL_EVENT_BUS,
-  InternalEventBus,
-} from '../../../../core/event/application/internal-event-bus.interface';
+  QUEUE_SERVICE,
+  QueueServiceContract,
+} from '../../../../core/messaging';
 
 const RAW_VIDEO_EXTENSIONS = new Set([
   '.mp4',
@@ -46,8 +46,8 @@ export class VideoWebhookController {
   constructor(
     @InjectRepository(Video)
     private readonly videoRepo: Repository<Video>,
-    @Inject(INTERNAL_EVENT_BUS)
-    private readonly eventBus: InternalEventBus,
+    @Inject(QUEUE_SERVICE)
+    private readonly queueService: QueueServiceContract,
   ) {}
 
   @Post('s3')
@@ -130,7 +130,7 @@ export class VideoWebhookController {
       video.videoStatus = VideoStatus.UPLOADED;
       await this.videoRepo.save(video);
 
-      await this.eventBus.publish(
+      await this.queueService.publish(
         new VideoUploadedEvent(
           video.videoId,
           video.authorId,

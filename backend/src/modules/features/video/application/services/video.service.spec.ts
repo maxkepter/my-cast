@@ -10,11 +10,16 @@ import { VideoConfig } from '../../domain/value-objects/video-config.vo';
 import { VideoVisibility } from '../../domain/enums/video-visibility.enum';
 import { VideoUpdatedEvent } from '../../domain/events/video-updated.event';
 import { VideoDeletedEvent } from '../../domain/events/video-deleted.event';
+import type {
+  EventStreamServiceContract,
+  OutboxRes,
+} from '../../../../core/messaging';
 
 describe('VideoService', () => {
   let service: VideoService;
   let videoRepo: any;
-  let eventBus: any;
+  let publishMock: ReturnType<typeof vi.fn>;
+  let eventStreamService: EventStreamServiceContract;
 
   const mockVideo = () =>
     Video.create(
@@ -37,11 +42,15 @@ describe('VideoService', () => {
       remove: vi.fn().mockResolvedValue(undefined),
     };
 
-    eventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    publishMock = vi.fn().mockResolvedValue([
+      { id: 'outbox-1', eventId: 'evt-1', eventType: 'video.updated' } as OutboxRes,
+    ]);
+    eventStreamService = {
+      publish: publishMock,
+      publishMany: vi.fn().mockResolvedValue([]),
     };
 
-    service = new VideoService(videoRepo, eventBus);
+    service = new VideoService(videoRepo, eventStreamService);
   });
 
   describe('updateVideo', () => {
@@ -101,7 +110,7 @@ describe('VideoService', () => {
       expect(result.description).toBe('Updated Description');
       expect(result.config.allowComments).toBe(false);
       expect(videoRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(VideoUpdatedEvent),
       );
     });
@@ -142,7 +151,7 @@ describe('VideoService', () => {
       await service.deleteVideo('u-creator-1', 'v-101');
 
       expect(videoRepo.remove).toHaveBeenCalledWith(existing);
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(VideoDeletedEvent),
       );
     });

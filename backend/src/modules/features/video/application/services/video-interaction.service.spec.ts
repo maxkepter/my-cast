@@ -9,13 +9,18 @@ import { VideoLikedEvent } from '../../domain/events/video-liked.event';
 import { VideoUnlikedEvent } from '../../domain/events/video-unliked.event';
 import { VideoSharedEvent } from '../../domain/events/video-shared.event';
 import { SharePlatform } from '../../domain/enums/share-platform.enum';
+import type {
+  EventStreamServiceContract,
+  OutboxRes,
+} from '../../../../core/messaging';
 
 describe('VideoInteractionService', () => {
   let service: VideoInteractionService;
   let videoRepo: any;
   let reactionRepo: any;
   let shareRepo: any;
-  let eventBus: any;
+  let publishMock: ReturnType<typeof vi.fn>;
+  let eventStreamService: EventStreamServiceContract;
 
   const mockVideo = () =>
     Video.create(
@@ -44,15 +49,19 @@ describe('VideoInteractionService', () => {
     shareRepo = {
       save: vi.fn((entity) => Promise.resolve(entity)),
     };
-    eventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    publishMock = vi.fn().mockResolvedValue([
+      { id: 'outbox-1', eventId: 'evt-1', eventType: 'video.liked' } as OutboxRes,
+    ]);
+    eventStreamService = {
+      publish: publishMock,
+      publishMany: vi.fn().mockResolvedValue([]),
     };
 
     service = new VideoInteractionService(
       videoRepo,
       reactionRepo,
       shareRepo,
-      eventBus,
+      eventStreamService,
     );
   });
 
@@ -76,7 +85,7 @@ describe('VideoInteractionService', () => {
       expect(res.totalLikes).toBe(11);
       expect(reactionRepo.save).toHaveBeenCalled();
       expect(videoRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(VideoLikedEvent),
       );
     });
@@ -93,7 +102,7 @@ describe('VideoInteractionService', () => {
       expect(res.totalLikes).toBe(9);
       expect(reactionRepo.remove).toHaveBeenCalledWith(existingReaction);
       expect(videoRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(VideoUnlikedEvent),
       );
     });
@@ -151,7 +160,7 @@ describe('VideoInteractionService', () => {
       expect(res.shareUrl).toContain('https://mycast.tv/watch/v-101');
       expect(res.embedCode).toContain('<iframe');
       expect(shareRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(VideoSharedEvent),
       );
     });

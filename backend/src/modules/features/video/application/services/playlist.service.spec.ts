@@ -12,12 +12,17 @@ import { PlaylistVisibility } from '../../domain/enums/playlist-visibility.enum'
 import { VideoVisibility } from '../../domain/enums/video-visibility.enum';
 import { PlaylistCreatedEvent } from '../../domain/events/playlist-created.event';
 import { VideoAddedToPlaylistEvent } from '../../domain/events/video-added-to-playlist.event';
+import type {
+  EventStreamServiceContract,
+  OutboxRes,
+} from '../../../../core/messaging';
 
 describe('PlaylistService', () => {
   let service: PlaylistService;
   let playlistRepo: any;
   let videoRepo: any;
-  let eventBus: any;
+  let publishMock: ReturnType<typeof vi.fn>;
+  let eventStreamService: EventStreamServiceContract;
 
   const mockPlaylist = (visibility = PlaylistVisibility.PUBLIC) =>
     Playlist.create(
@@ -61,11 +66,15 @@ describe('PlaylistService', () => {
       find: vi.fn(),
     };
 
-    eventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    publishMock = vi.fn().mockResolvedValue([
+      { id: 'outbox-1', eventId: 'evt-1', eventType: 'playlist.created' } as OutboxRes,
+    ]);
+    eventStreamService = {
+      publish: publishMock,
+      publishMany: vi.fn().mockResolvedValue([]),
     };
 
-    service = new PlaylistService(playlistRepo, videoRepo, eventBus);
+    service = new PlaylistService(playlistRepo, videoRepo, eventStreamService);
   });
 
   describe('createPlaylist', () => {
@@ -91,7 +100,7 @@ describe('PlaylistService', () => {
 
       expect(res.playlistName).toBe('Brand New Playlist');
       expect(playlistRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(PlaylistCreatedEvent),
       );
     });
@@ -146,7 +155,7 @@ describe('PlaylistService', () => {
 
       expect(pl.videoIds).toContain('v-3');
       expect(playlistRepo.save).toHaveBeenCalled();
-      expect(eventBus.publish).toHaveBeenCalledWith(
+      expect(publishMock).toHaveBeenCalledWith(
         expect.any(VideoAddedToPlaylistEvent),
       );
       expect(res.videos).toHaveLength(3);

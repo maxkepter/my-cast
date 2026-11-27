@@ -13,7 +13,8 @@ import { JwtStrategy } from './infra/strategies/jwt.strategy';
 import { JwtGuard } from './infra/guards/jwt.guard';
 import { RoleGuard } from './infra/guards/role.guard';
 import { UserModule } from '../user/user.module';
-import { EventModule } from '../../core/event/event.module';
+import { MessagingModule } from '../../core/messaging';
+import { AUTH_MESSAGING_TOPOLOGY } from './infra/messaging/auth-messaging.topology';
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ import { EventModule } from '../../core/event/event.module';
     }),
     ConfigModule,
     UserModule,
-    EventModule,
+    MessagingModule.forFeature(AUTH_MESSAGING_TOPOLOGY),
   ],
   controllers: [AuthController],
   providers: [

@@ -12,7 +12,8 @@ import { CommentAuthorizationPolicy } from './domain/services/comment-authorizat
 // Upstream Modules (Module CHỈ ĐƯỢC IMPORT MODULE)
 import { VideoModule } from '../video/video.module';
 import { AuthModule } from '../auth/auth.module';
-import { EventModule } from '../../core/event/event.module';
+import { MessagingModule } from '../../core/messaging';
+import { INTERACTION_MESSAGING_TOPOLOGY } from './infra/messaging/interaction-messaging.topology';
 
 // Application Services
 import {
@@ -36,7 +37,7 @@ import { OptionalJwtGuard } from './infra/guards/optional-jwt.guard';
     TypeOrmModule.forFeature([Comment, ContentReport, UserBlock]),
     VideoModule,
     AuthModule,
-    EventModule,
+    MessagingModule.forFeature(INTERACTION_MESSAGING_TOPOLOGY),
   ],
   controllers: [
     CommentController,

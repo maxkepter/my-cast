@@ -20,7 +20,7 @@ describe('AuthService', () => {
   let refreshTokenService: any;
   let jwtService: any;
   let configService: any;
-  let internalEventBus: any;
+  let queueService: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,8 +66,12 @@ describe('AuthService', () => {
       }),
     };
 
-    internalEventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    const mockOutboxRes = [
+      { id: 'outbox-1', eventId: 'evt-1', eventType: 'user.created' },
+    ];
+    queueService = {
+      publish: vi.fn().mockResolvedValue(mockOutboxRes),
+      publishMany: vi.fn().mockResolvedValue(mockOutboxRes),
     };
 
     authService = new AuthService(
@@ -75,7 +79,7 @@ describe('AuthService', () => {
       refreshTokenService,
       jwtService,
       configService,
-      internalEventBus,
+      queueService,
     );
   });
 
@@ -167,7 +171,7 @@ describe('AuthService', () => {
 
       expect(userRepo.create).toHaveBeenCalled();
       expect(userRepo.save).toHaveBeenCalled();
-      expect(internalEventBus.publish).toHaveBeenCalledWith(
+      expect(queueService.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'u-1',
           email: 'newuser@example.com',

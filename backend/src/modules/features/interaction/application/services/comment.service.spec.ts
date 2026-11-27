@@ -7,6 +7,7 @@ import { CommentStatus } from '../../domain/enums/comment-status.enum';
 import { CommentCreatedEvent } from '../../domain/events/comment-created.event';
 import { CommentDeletedEvent } from '../../domain/events/comment-deleted.event';
 import { CreateCommentReqDto, UpdateCommentReqDto } from '../../dtos/req.dto';
+import { EventStreamServiceContract } from '../../../../core/messaging';
 
 describe('CommentService', () => {
   let service: CommentService;
@@ -15,8 +16,9 @@ describe('CommentService', () => {
     findOne: ReturnType<typeof vi.fn>;
     save: ReturnType<typeof vi.fn>;
   };
-  let eventBus: {
+  let eventStreamService: EventStreamServiceContract & {
     publish: ReturnType<typeof vi.fn>;
+    publishMany: ReturnType<typeof vi.fn>;
   };
   let videoService: {
     getVideoBasicInfo: ReturnType<typeof vi.fn>;
@@ -44,8 +46,10 @@ describe('CommentService', () => {
       ),
     };
 
-    eventBus = {
-      publish: vi.fn().mockResolvedValue(undefined),
+    const mockOutboxRes = [{ id: 'outbox-1', eventId: 'evt-1', eventType: 'test.event' }];
+    eventStreamService = {
+      publish: vi.fn().mockResolvedValue(mockOutboxRes),
+      publishMany: vi.fn().mockResolvedValue(mockOutboxRes),
     };
 
     videoService = {
@@ -60,7 +64,7 @@ describe('CommentService', () => {
 
     service = new CommentService(
       commentRepo as any,
-      eventBus as any,
+      eventStreamService,
       videoService as any,
     );
   });
@@ -123,7 +127,7 @@ describe('CommentService', () => {
         NotFoundException,
       );
       expect(commentRepo.save).not.toHaveBeenCalled();
-      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(eventStreamService.publish).not.toHaveBeenCalled();
     });
 
     it('throws ForbiddenException when video is inactive', async () => {
@@ -162,9 +166,9 @@ describe('CommentService', () => {
       const result = await service.createComment(authorId, dto);
 
       expect(commentRepo.save).toHaveBeenCalledTimes(1);
-      expect(eventBus.publish).toHaveBeenCalledTimes(1);
+      expect(eventStreamService.publish).toHaveBeenCalledTimes(1);
 
-      const publishedEvent = eventBus.publish.mock.calls[0][0];
+      const publishedEvent = eventStreamService.publish.mock.calls[0][0];
       expect(publishedEvent).toBeInstanceOf(CommentCreatedEvent);
       expect(publishedEvent.videoId).toBe(videoId);
       expect(publishedEvent.authorId).toBe(authorId);
@@ -196,7 +200,7 @@ describe('CommentService', () => {
           status: CommentStatus.VISIBLE,
         },
       });
-      expect(eventBus.publish).not.toHaveBeenCalled();
+      expect(eventStreamService.publish).not.toHaveBeenCalled();
     });
 
     it('increments parent replies and saves reply comment when valid parentId', async () => {
@@ -216,7 +220,7 @@ describe('CommentService', () => {
       expect(commentRepo.save).toHaveBeenCalledWith(parentComment);
       expect(commentRepo.save).toHaveBeenCalledTimes(2);
 
-      const publishedEvent = eventBus.publish.mock.calls[0][0];
+      const publishedEvent = eventStreamService.publish.mock.calls[0][0];
       expect(publishedEvent.parentId).toBe(parentId);
       expect(result.parentId).toBe(parentId);
     });
@@ -292,8 +296,8 @@ describe('CommentService', () => {
       expect(existing.status).toBe(CommentStatus.DELETED_BY_AUTHOR);
       expect(commentRepo.save).toHaveBeenCalledWith(existing);
 
-      expect(eventBus.publish).toHaveBeenCalledTimes(1);
-      const event = eventBus.publish.mock.calls[0][0];
+      expect(eventStreamService.publish).toHaveBeenCalledTimes(1);
+      const event = eventStreamService.publish.mock.calls[0][0];
       expect(event).toBeInstanceOf(CommentDeletedEvent);
       expect(event.commentId).toBe(commentId);
       expect(event.deletedBy).toBe(authorId);
@@ -309,7 +313,7 @@ describe('CommentService', () => {
       expect(result).toBe(true);
       expect(existing.status).toBe(CommentStatus.DELETED_BY_CREATOR);
 
-      const event = eventBus.publish.mock.calls[0][0];
+      const event = eventStreamService.publish.mock.calls[0][0];
       expect(event.deletedBy).toBe(creatorId);
       expect(event.isDeletedByCreator).toBe(true);
     });

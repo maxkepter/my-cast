@@ -3,11 +3,11 @@ import { map } from 'rxjs/operators';
 import { Injectable, Inject, MessageEvent } from '@nestjs/common';
 import { DomainEvent } from './common/domain/domain-event';
 import {
-  INTEGRATION_EVENT_BUS,
-  IntegrationEventBus,
-} from './modules/core/event/application/integration-event-bus.interface';
-import { RedisStreamConsume } from './modules/core/event/infrastructure/redis-stream/decorators/redis-stream-consume.decorator';
-import { RedisStreamHandle } from './modules/core/event/infrastructure/redis-stream/decorators/redis-stream-handle.decorator';
+  EVENT_STREAM_SERVICE,
+  EventStreamServiceContract,
+  RedisStreamConsume,
+  RedisStreamHandle,
+} from './modules/core/messaging';
 
 export class TestStreamEvent extends DomainEvent {
   static readonly EVENT_NAME = 'test.event';
@@ -28,22 +28,21 @@ export class TestStreamEvent extends DomainEvent {
   consumerName: 'test-consumer-1',
 })
 export class TestEventConsumer {
-  private static readonly eventSubject = new Subject<any>();
+  private static readonly eventSubject = new Subject<Record<string, unknown>>();
 
   constructor(
-    @Inject(INTEGRATION_EVENT_BUS)
-    private readonly eventBus: IntegrationEventBus,
+    @Inject(EVENT_STREAM_SERVICE)
+    private readonly eventStreamService: EventStreamServiceContract,
   ) {}
 
   async publish(message: string): Promise<string | null> {
     const event = new TestStreamEvent(message);
-    return this.eventBus.publish(event);
+    const outboxRows = await this.eventStreamService.publish(event);
+    return outboxRows[0]?.eventId ?? event.id;
   }
 
   @RedisStreamHandle(TestStreamEvent.EVENT_NAME)
-  async handleTestEvent(payload: any): Promise<void> {
-    console.log('Received Test Event:', payload);
-
+  async handleTestEvent(payload: Record<string, unknown>): Promise<void> {
     TestEventConsumer.eventSubject.next(payload);
   }
 
