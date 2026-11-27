@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { StorageObjectStatus } from '../domain/enums/storage-object-status.enum';
 
 export interface StorageUploadPayload {
   key: string;
@@ -106,6 +107,18 @@ export interface StorageContract {
    */
   getUrlByStorageId(storageId: string): Promise<StoragePresignedDownloadResult>;
 
+  /**
+   * Cập nhật trạng thái của đối tượng lưu trữ theo `storageKey`.
+   *
+   * @param storageKey - Khóa đối tượng lưu trữ.
+   * @param status - Trạng thái mới của đối tượng lưu trữ.
+   * @returns Thông tin kết quả lưu trữ sau khi cập nhật.
+   */
+  updateVideoStatus(
+    storageKey: string,
+    status: StorageObjectStatus,
+  ): Promise<StorageUploadResult>;
+
   // Backwards compatibility aliases
   /**
    * Alias tương thích ngược cho `getPresignedDownloadUrl`.
@@ -175,6 +188,14 @@ export const MockStorageContract: StorageContract = {
     key: storageId,
     url: `https://mock-storage.local/${storageId}?expires=3600`,
     expiresIn: 3600,
+  }),
+  updateVideoStatus: async (
+    storageKey: string,
+    _status: StorageObjectStatus,
+  ): Promise<StorageUploadResult> => ({
+    storageId: storageKey,
+    key: storageKey,
+    etag: 'mock-etag-12345',
   }),
   getPresignedDowloadUrl: async (
     storageId: string,

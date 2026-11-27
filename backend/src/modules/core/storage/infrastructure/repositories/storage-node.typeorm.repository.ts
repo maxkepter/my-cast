@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StorageNode } from '../../domain/entities/storage-node.entity';
 import { StorageObject } from '../../domain/entities/storage.entity';
+import { StorageObjectStatus } from '../../domain/enums/storage-object-status.enum';
 import { StorageNodeRepository } from '../../domain/repositories/storage-node.repository.interface';
 import { UpdateStorageNodeReq } from '../../dtos/req.dto';
 
@@ -93,7 +94,7 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
 
   countReadyByNodeId(nodeId: string): Promise<number> {
     return this.objectRepository.count({
-      where: { storageNodeId: nodeId, status: 'READY' },
+      where: { storageNodeId: nodeId, status: StorageObjectStatus.READY },
     });
   }
 
@@ -103,7 +104,9 @@ export class StorageNodeTypeOrmRepository implements StorageNodeRepository {
         .createQueryBuilder('storage')
         .select('COALESCE(SUM(CAST(storage.size AS BIGINT)), 0)', 'total')
         .where('storage.storageNodeId = :nodeId', { nodeId })
-        .andWhere('storage.status = :status', { status: 'READY' })
+        .andWhere('storage.status = :status', {
+          status: StorageObjectStatus.READY,
+        })
         .getRawOne();
 
     const total = Number(result?.total ?? 0);
