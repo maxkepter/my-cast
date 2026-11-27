@@ -3,9 +3,13 @@ sequenceDiagram
     participant Frontend as Frontend
     participant VideoModule as Video Module
     participant StorageModule as Storage Module
-    participant S3Storage as S3 Storage
     participant QueueModule as Queue Module
-    participant EventModule as Event Module
+     box rgb(33, 66, 99) "Infrastructure Layer"
+    participant S3Storage as S3 Storage
+    participant Queue as RabbitMQ
+    %% participant Database as Database
+    end
+    
 
     creator->>Frontend: Upload video
     Frontend->>+VideoModule: Post /videos/upload 
@@ -26,5 +30,11 @@ sequenceDiagram
         VideoModule-->>-Frontend: Return signed URL
         Frontend->>+S3Storage: Upload video to signed URL
         S3Storage-->>-Frontend: 200 OK
-        Frontend-->>creator: Upload successful
+        Frontend->>+VideoModule: Post /videos/completeUpload
+        VideoModule->>+StorageModule: updateVideoStatus(storageKey, status='READY')
+        StorageModule-->>-VideoModule: storageUploadedRes
+        VideoModule-)QueueModule: publish('video.uploaded', videoUploadedEvent)
+        QueueModule-)Queue: publish(exchange, queueName, data)
+        VideoModule->>-Frontend: 200 OK
+        Frontend-->>creator: Upload successful, video processing started
     end
