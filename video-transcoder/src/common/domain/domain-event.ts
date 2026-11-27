@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
 export abstract class DomainEvent {
-  readonly id?: string;
+  readonly id: string;
   readonly occuredOn: Date;
 
   static readonly EVENT_NAME: string;
 
   constructor() {
+    this.id = randomUUID();
     this.occuredOn = new Date();
   }
 
