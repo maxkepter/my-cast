@@ -1,5 +1,87 @@
 sequenceDiagram
-    Alice->>+John: Hello John, how are you?
-    Alice->>+John: John, can you hear me?
-    John-->>-Alice: Hi Alice, I can hear you!
-    John-->>-Alice: I feel great!
+    actor Creator as Creator
+    participant Frontend as Frontend
+    participant Backend as Backend (VideoModule / SSE)
+    box rgb(33, 66, 99) "Messaging & Persistence"
+        participant RabbitMQ as RabbitMQ (video.events)
+        participant PostgresDB as PostgreSQL (inbox & outbox)
+    end
+    box rgb(40, 75, 55) "Video Transcoder Service"
+        participant VideoProcess as Video Process Module
+        participant MessagingModule as Messaging Module (Inbox/Outbox)
+        participant VideoTranscode as Video Transcode Module (FFmpeg)
+        participant Storage as Storage Module (Local & S3)
+    end
+
+    Note over Frontend,Backend: After PUT video to S3 returns 200 OK (from upload-video.mmd)
+    Frontend->>+Backend: GET /videos/:videoId/events (SSE)
+    Backend-->>Frontend: event: status (current snapshot: PROCESSING / READY / FAILED)
+    Frontend-->>Creator: Show loading state
+
+    RabbitMQ-)VideoProcess: Consume video.upload (videoId, videoKey, hasThumbnail)
+    VideoProcess->>+MessagingModule: inboxService.executeOnce(req, event, handler)
+    MessagingModule->>+PostgresDB: tryInsert(inbox_messages: eventId, consumer)
+
+    alt Duplicate message (inserted = false)
+        PostgresDB-->>MessagingModule: false
+        MessagingModule-->>VideoProcess: false
+        VideoProcess-)RabbitMQ: ACK (skip)
+    else New message (inserted = true)
+        PostgresDB-->>-MessagingModule: true
+
+        Note over VideoProcess,Storage: Execute handler inside try / catch / finally
+        VideoProcess->>+Storage: createTempDir("job-") & download source video from S3
+        Storage-->>-VideoProcess: localInputPath
+
+        VideoProcess->>+VideoTranscode: probe(localInputPath)
+        alt Invalid video (INVALID_MEDIA / PROBE_FAILED)
+            VideoTranscode-->>VideoProcess: throw VideoTranscodeException
+        else Valid video
+            VideoTranscode-->>-VideoProcess: VideoMetadata (width, height, duration...)
+            VideoProcess->>VideoProcess: Filter HLS renditions <= metadata.height
+
+            VideoProcess->>+VideoTranscode: transcodeHls(localInputPath, hlsDir, renditions)
+            VideoTranscode-->>-VideoProcess: master.m3u8 + variants + .ts segments
+
+            opt hasThumbnail == false
+                VideoProcess->>+VideoTranscode: generateThumbnail(localInputPath, thumbPath)
+                VideoTranscode-->>-VideoProcess: thumbPath
+            end
+
+            VideoProcess->>+VideoTranscode: generateStoryboard(localInputPath, storyboardDir)
+            VideoTranscode-->>-VideoProcess: vttPath + spritePaths
+
+            VideoProcess->>+VideoTranscode: generatePreview(localInputPath, previewPath)
+            VideoTranscode-->>-VideoProcess: previewPath
+
+            VideoProcess->>+Storage: Upload segments, playlists, assets & master.m3u8 (last) to S3
+            Storage-->>-VideoProcess: S3 keys
+
+            VideoProcess->>MessagingModule: publish(video.process.completed) -> PostgresDB (outbox_messages)
+            MessagingModule->>PostgresDB: markAsProcessed(inbox_messages: inboxId)
+            MessagingModule-->>-VideoProcess: true
+            VideoProcess->>Storage: [finally] deleteDir(tempDir)
+            VideoProcess-)RabbitMQ: ACK
+
+            Note over PostgresDB,Backend: OutboxProcessor publishes event to RabbitMQ
+            PostgresDB-)RabbitMQ: video.process.completed
+            RabbitMQ-)Backend: Consume completed -> Update Video status = READY
+            Backend-->>Frontend: SSE event: completed (masterUrl, thumbnailUrl...)
+            Backend-->>-Frontend: Close SSE stream
+            Frontend-->>Creator: Notify processing succeeded
+        end
+
+        opt Error at any step (catch)
+            VideoProcess->>MessagingModule: publish(video.process.failed, reason) -> PostgresDB (outbox_messages)
+            VideoProcess->>Storage: [finally] deleteDir(tempDir)
+            MessagingModule->>PostgresDB: markAsFailed(inbox_messages: inboxId, error)
+            VideoProcess-)RabbitMQ: NACK (no requeue / DLQ)
+
+            PostgresDB-)RabbitMQ: video.process.failed
+            RabbitMQ-)Backend: Consume failed -> Update Video status = FAILED
+            activate Backend
+            Backend-->>Frontend: SSE event: failed (reason)
+            Backend-->>-Frontend: Close SSE stream
+            Frontend-->>Creator: Notify processing failed
+        end
+    end

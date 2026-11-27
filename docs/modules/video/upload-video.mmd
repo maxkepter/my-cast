@@ -3,7 +3,7 @@ sequenceDiagram
     participant Frontend as Frontend
     participant VideoModule as Video Module
     participant StorageModule as Storage Module
-    participant QueueModule as Queue Module
+    participant MessagingModule as Messaging Module
      box rgb(33, 66, 99) "Infrastructure Layer"
     participant S3Storage as S3 Storage
     participant Queue as RabbitMQ
@@ -23,18 +23,22 @@ sequenceDiagram
         Frontend-->>creator: Unsupported video format
     else File size <= 100mb and file type supported
         activate VideoModule
-        VideoModule->>+StorageModule: getSignedUrl(videokey)
-        StorageModule->>+S3Storage: Generate presigned PUT URL
+        VideoModule->>VideoModule: Create folder named by storageKey ({storageKey}/)
+        VideoModule->>+StorageModule: getSignedUrl({storageKey}/video)
+        StorageModule->>+S3Storage: Generate presigned PUT URL in {storageKey}/
         S3Storage-->>-StorageModule: Return signed URL
         StorageModule-->>-VideoModule: Return signed URL
         VideoModule-->>-Frontend: Return signed URL
-        Frontend->>+S3Storage: Upload video to signed URL
+        Frontend->>+S3Storage: Upload video to signed URL ({storageKey}/video)
         S3Storage-->>-Frontend: 200 OK
         Frontend->>+VideoModule: Post /videos/completeUpload
         VideoModule->>+StorageModule: updateVideoStatus(storageKey, status='READY')
         StorageModule-->>-VideoModule: storageUploadedRes
-        VideoModule-)QueueModule: publish('video.uploaded', videoUploadedEvent)
-        QueueModule-)Queue: publish(exchange, queueName, data)
+        VideoModule->>+MessagingModule: QUEUE_SERVICE.publish(VideoUploadedEvent)
+        MessagingModule-->>-VideoModule: OutboxRes[] (PENDING)
+        MessagingModule-)Queue: OutboxProcessor -> publish('video.events', 'video.upload', data)
         VideoModule->>-Frontend: 200 OK
+        Frontend->>+VideoModule: SSE /videos/:videoId/status/events
+        VideoModule-->>-Frontend: Subscribe to video status events
         Frontend-->>creator: Upload successful, video processing started
     end

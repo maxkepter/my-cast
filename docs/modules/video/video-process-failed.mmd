@@ -1,0 +1,62 @@
+sequenceDiagram
+    autonumber
+    actor Creator as Creator
+    participant Frontend as Frontend
+    participant StreamSvc as VideoStatusStreamService (SSE)
+    participant Explorer as RedisStreamRunner
+    participant Consumer as VideoProcessFailedConsumer
+    participant Messaging as Messaging Module (INBOX_SERVICE)
+    participant Handler as VideoProcessFailedHandler
+    participant Storage as Storage Module (STORAGE_CONTRACT)
+    box rgb(33, 66, 99) "Infrastructure Layer"
+    participant RedisStream as Redis Stream (video.process.failed)
+    participant Postgres as PostgreSQL (inbox_messages / videos / storages)
+    end
+
+    RedisStream-)Explorer: XREADGROUP message (event='video.process.failed', payload)
+    Explorer->>Consumer: handleVideoProcessFailed(payload)
+    Consumer->>Messaging: inboxService.executeOnce(inboxReq, event, handler)
+    Messaging->>Postgres: tryInsert(inbox_messages: eventId, consumer)
+
+    alt Duplicate event (inserted = false)
+        Postgres-->>Messaging: false
+        Messaging-->>Consumer: false
+        Consumer-->>Explorer: return (skip duplicate)
+        Explorer-)RedisStream: XACK
+    else New event (inserted = true)
+        Postgres-->>Messaging: true
+        Messaging->>Handler: handle(VideoProcessFailedEvent)
+        Handler->>Postgres: findOne(videos by videoId)
+        Postgres-->>Handler: Video entity
+
+        alt Video missing or already terminal PROCESSED
+            Handler-->>Messaging: log & return safely
+        else Video in UPLOADING / UPLOADED / PROCESSING
+            Handler->>Handler: video.markFailed(reason)
+            Handler->>Postgres: save(Video: status='FAILED', failureReason)
+            Postgres-->>Handler: saved Video
+
+            Handler->>Storage: updateVideoStatus(video.videoFile, 'FAILED')
+            Storage->>Postgres: update storages.status = 'FAILED'
+            Storage-->>Handler: StorageUploadResult
+
+            opt video.thumbnail present
+                Handler->>Storage: updateVideoStatus(video.thumbnail, 'FAILED')
+            end
+
+            Handler->>StreamSvc: emitStatus({ videoId, status: 'FAILED', reason, message })
+            StreamSvc-->>Frontend: SSE event: failed (JSON payload) + complete()
+            Frontend-->>Creator: Render Failed Recovery Banner + reason + Retry CTA
+            Handler-->>Messaging: void
+        end
+
+        Messaging->>Postgres: markAsProcessed(inboxId)
+        Messaging-->>Consumer: true
+        Consumer-->>Explorer: resolved
+        Explorer-)RedisStream: XACK
+    end
+
+    opt Handler throws transient error
+        Messaging->>Postgres: markAsFailed(inboxId, error)
+        Explorer->>Explorer: Skip XACK -> xautoclaim retry (<= maxRetries) -> video.process.failed:dlq
+    end
