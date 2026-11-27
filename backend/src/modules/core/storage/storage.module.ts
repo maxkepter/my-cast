@@ -23,6 +23,8 @@ import { S3_BUCKET_PROBE } from './application/ports/s3-bucket-probe.interface';
 import { StorageNodeDeletionPolicy } from './application/policies/storage-node-deletion.policy';
 import { StorageNodeTypeOrmRepository } from './infrastructure/repositories/storage-node.typeorm.repository';
 import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.adapter';
+import { MessagingModule } from '../messaging';
+import { STORAGE_MESSAGING_TOPOLOGY } from './infrastructure/messaging/storage-messaging.topology';
 
 @Global()
 @Module({
@@ -30,6 +32,7 @@ import { S3BucketProbeAdapter } from './infrastructure/adapters/s3-bucket-probe.
     AuthModule,
     ConfigModule,
     TypeOrmModule.forFeature([StorageObject, StorageNode]),
+    MessagingModule.forFeature(STORAGE_MESSAGING_TOPOLOGY),
   ],
   controllers: [StorageAdminController],
   providers: [

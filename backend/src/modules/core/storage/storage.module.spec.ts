@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Global, Module } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { StorageObject } from './domain/entities/storage.entity';
@@ -21,6 +22,13 @@ import { StorageListener } from './infrastructure/listeners/storage.listener';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Reflector } from '@nestjs/core';
 import { DeleteStorageEvent } from './domain/events/delete-storage.event';
+import {
+  INBOX_SERVICE,
+  MessagingModule,
+  TOPOLOGY_REGISTRY,
+  TopologyRegistry,
+} from '../messaging';
+import { STORAGE_MESSAGING_TOPOLOGY } from './infrastructure/messaging/storage-messaging.topology';
 
 describe('StorageModule Dependency Resolution', () => {
   it('resolves S3StorageService and STORAGE_CONTRACT without circular/unknown dependencies', async () => {
@@ -42,6 +50,18 @@ describe('StorageModule Dependency Resolution', () => {
       save: vi.fn(),
       countReadyByNodeId: vi.fn().mockResolvedValue(0),
       sumReadyBytesByNodeId: vi.fn().mockResolvedValue(0),
+    };
+
+    const mockInboxService = {
+      tryInsert: vi.fn(),
+      findByEventAndConsumer: vi.fn(),
+      markAsProcessed: vi.fn(),
+      markAsFailed: vi.fn(),
+      deleteProcessedBefore: vi.fn(),
+      executeOnce: vi.fn(async (_req, data, handler) => {
+        await handler.handle(data);
+        return true;
+      }),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -90,6 +110,7 @@ describe('StorageModule Dependency Resolution', () => {
         DeleteStorageHandler,
         StorageInterceptor,
         StorageExceptionInterceptor,
+        { provide: INBOX_SERVICE, useValue: mockInboxService },
         StorageListener,
         Reflector,
       ],
@@ -99,11 +120,13 @@ describe('StorageModule Dependency Resolution', () => {
     const storageContract = moduleRef.get(STORAGE_CONTRACT);
     const deleteHandler = moduleRef.get(DeleteStorageHandler);
     const interceptor = moduleRef.get(StorageInterceptor);
+    const listener = moduleRef.get(StorageListener);
 
     expect(s3Service).toBeInstanceOf(S3StorageService);
     expect(storageContract).toBe(s3Service);
     expect(deleteHandler).toBeInstanceOf(DeleteStorageHandler);
     expect(interceptor).toBeInstanceOf(StorageInterceptor);
+    expect(listener).toBeInstanceOf(StorageListener);
 
     // Verify DeleteStorageHandler uses resolved storageService
     const deleteSpy = vi
@@ -111,5 +134,57 @@ describe('StorageModule Dependency Resolution', () => {
       .mockResolvedValue(undefined);
     await deleteHandler.handle(new DeleteStorageEvent(['test-key-1']));
     expect(deleteSpy).toHaveBeenCalledWith('test-key-1');
+  });
+
+  it('registers STORAGE_MESSAGING_TOPOLOGY via MessagingModule.forFeature in isolation', async () => {
+    const registerSpy = vi.fn();
+    const registryMock: TopologyRegistry = {
+      register: registerSpy,
+      getExchanges: vi.fn().mockReturnValue([]),
+      getQueues: vi.fn().mockReturnValue([]),
+      resolve: vi.fn().mockReturnValue([]),
+    };
+    const inboxServiceMock = {
+      tryInsert: vi.fn(),
+      findByEventAndConsumer: vi.fn(),
+      markAsProcessed: vi.fn(),
+      markAsFailed: vi.fn(),
+      deleteProcessedBefore: vi.fn(),
+      executeOnce: vi.fn(async (_req, data, handler) => {
+        await handler.handle(data);
+        return true;
+      }),
+    };
+
+    @Global()
+    @Module({
+      providers: [
+        { provide: TOPOLOGY_REGISTRY, useValue: registryMock },
+        { provide: INBOX_SERVICE, useValue: inboxServiceMock },
+      ],
+      exports: [TOPOLOGY_REGISTRY, INBOX_SERVICE],
+    })
+    class MockMessagingHostModule {}
+
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [
+        MockMessagingHostModule,
+        MessagingModule.forFeature(STORAGE_MESSAGING_TOPOLOGY),
+      ],
+      providers: [
+        {
+          provide: DeleteStorageHandler,
+          useValue: { handle: vi.fn().mockResolvedValue(undefined) },
+        },
+        StorageListener,
+      ],
+    }).compile();
+
+    await moduleRef.init();
+
+    expect(registerSpy).toHaveBeenCalledWith(STORAGE_MESSAGING_TOPOLOGY);
+    expect(moduleRef.get(StorageListener)).toBeInstanceOf(StorageListener);
+
+    await moduleRef.close();
   });
 });
